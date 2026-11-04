@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 
 interface CollegeAllocation {
@@ -193,7 +194,7 @@ export default function EnrollmentPage() {
                       onClick={() => alert(`Opening enrollment roster for ${col.name}`)}
                       type="button"
                     >
-                      Roster <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                      Roster <Icon className="text-[14px]">arrow_forward</Icon>
                     </button>
                   </div>
                 </article>

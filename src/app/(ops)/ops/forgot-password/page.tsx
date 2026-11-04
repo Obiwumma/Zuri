@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
 
 export default function OpsForgotPasswordPage() {
@@ -67,7 +68,7 @@ export default function OpsForgotPasswordPage() {
           <div className="bg-surface-container-high px-space-lg py-3 flex items-center justify-between border-b border-outline-variant/30">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-surface-container-highest text-tertiary">
-                <span className="material-symbols-outlined text-[14px]">lock_reset</span>
+                <Icon className="text-[14px]">lock_reset</Icon>
               </span>
               <span className="font-code-md text-code-md text-on-surface tracking-wide">ENCLAVE://IDENTITY-TRIAGE</span>
             </div>
@@ -89,14 +90,14 @@ export default function OpsForgotPasswordPage() {
 
             {errorMessage && (
               <div className="rounded-lg bg-error-container/20 p-space-md flex items-start gap-3 border border-error-container/40">
-                <span className="material-symbols-outlined text-error mt-0.5 text-[18px]">warning</span>
+                <Icon className="text-error mt-0.5 text-[18px]">warning</Icon>
                 <span className="font-body-sm text-body-sm text-on-error-container">{errorMessage}</span>
               </div>
             )}
 
             {message && (
               <div className="rounded-lg bg-secondary-container/20 p-space-md flex items-start gap-3 border border-secondary-container/40">
-                <span className="material-symbols-outlined text-secondary mt-0.5 text-[18px]">mark_email_read</span>
+                <Icon className="text-secondary mt-0.5 text-[18px]">mark_email_read</Icon>
                 <span className="font-body-sm text-body-sm text-on-surface">{message}</span>
               </div>
             )}
@@ -124,9 +125,9 @@ export default function OpsForgotPasswordPage() {
                   disabled={isLoading}
                   className="w-full h-10 px-4 rounded font-code-lg text-code-lg font-semibold tracking-wider uppercase flex items-center justify-center gap-2 bg-primary-container text-on-primary-container hover:bg-primary transition-all shadow-xs cursor-pointer disabled:opacity-60"
                 >
-                  <span className="material-symbols-outlined text-[18px]">
+                  <Icon className="text-[18px]">
                     {isLoading ? 'sync' : 'send'}
-                  </span>
+                  </Icon>
                   <span>{isLoading ? 'Dispatching Token...' : 'Dispatch Recovery Token'}</span>
                 </button>
               </div>

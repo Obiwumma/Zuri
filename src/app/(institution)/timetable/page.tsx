@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 
 interface ScheduleSlot {
@@ -230,7 +231,7 @@ export default function TimetablePage() {
                   onClick={() => alert(`Viewing details for ${slot.moduleCode} at ${slot.venue}`)}
                   type="button"
                 >
-                  Schedule Details <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                  Schedule Details <Icon className="text-[14px]">arrow_forward</Icon>
                 </button>
               </div>
             </article>

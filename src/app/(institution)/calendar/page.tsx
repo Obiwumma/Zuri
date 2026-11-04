@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 
 interface MilestoneCard {
@@ -197,7 +198,7 @@ export default function AcademicCalendarPage() {
                   onClick={() => alert(`Opening Gazette notice for ${m.title}`)}
                   type="button"
                 >
-                  Gazette Notice <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                  Gazette Notice <Icon className="text-[14px]">arrow_forward</Icon>
                 </button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 
 interface DepartmentCard {
@@ -225,7 +226,7 @@ export default function DepartmentsPage() {
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
-                    <span className="material-symbols-outlined text-[18px]">{dept.icon}</span>
+                    <Icon className="text-[18px]">{dept.icon}</Icon>
                   </span>
                   <span className="font-mono text-xs px-2 py-0.5 rounded bg-primary-container text-on-primary-container font-semibold">
                     {dept.code}
@@ -275,7 +276,7 @@ export default function DepartmentsPage() {
                 onClick={() => alert(`Opening departmental catalog for ${dept.name}`)}
                 type="button"
               >
-                View Department <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                View Department <Icon className="text-[14px]">arrow_forward</Icon>
               </button>
             </div>
           </article>

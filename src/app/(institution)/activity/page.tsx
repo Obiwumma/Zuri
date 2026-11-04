@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 
 interface ActivityItem {
@@ -105,7 +106,7 @@ export default function AcademicActivityPage() {
 
         <div className="flex items-center gap-3">
           <div className="bg-surface-container-low px-3.5 py-1.5 rounded-full border border-outline-variant/30 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[16px] text-secondary">sensors</span>
+            <Icon className="text-[16px] text-secondary">sensors</Icon>
             <span className="font-ui-functional text-xs font-semibold text-on-surface">2,840 Events Today</span>
           </div>
         </div>
@@ -176,7 +177,7 @@ export default function AcademicActivityPage() {
                 className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/25 hover:border-outline-variant/60 transition-all flex gap-4 items-start"
               >
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${getIconBg()}`}>
-                  <span className="material-symbols-outlined text-[20px]">{getIcon()}</span>
+                  <Icon className="text-[20px]">{getIcon()}</Icon>
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -217,7 +218,7 @@ export default function AcademicActivityPage() {
           <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/25 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <h3 className="font-serif text-sm font-bold text-primary">Division Activity Heat</h3>
-              <span className="material-symbols-outlined text-[18px] text-secondary">insights</span>
+              <Icon className="text-[18px] text-secondary">insights</Icon>
             </div>
 
             <div className="flex flex-col gap-2.5 mt-1">

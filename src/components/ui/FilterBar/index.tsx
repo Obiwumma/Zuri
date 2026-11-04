@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from '@/components/ui/Icon';
 
 export interface FilterOption {
   id: string;
@@ -29,7 +30,7 @@ export function FilterBar({
       <aside aria-label={label || 'Filter Bar'} className={`flex flex-col md:flex-row md:items-center justify-between gap-3 bg-surface-container-low/50 px-4 py-2 rounded-xl border border-outline-variant/20 ${className}`}>
         {(label || icon) && (
           <div className="flex items-center gap-2">
-            {icon && <span className="material-symbols-outlined text-[18px] text-secondary/80">{icon}</span>}
+            {icon && <Icon name={icon} size={18} className="text-secondary/80" />}
             {label && <span className="font-label-caps text-[11px] uppercase tracking-wider text-on-surface-variant/70 font-medium">{label}</span>}
           </div>
         )}

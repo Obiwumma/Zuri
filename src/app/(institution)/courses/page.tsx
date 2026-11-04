@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { DevStateLens } from '@/components/ui/DevStateLens';
 import { KpiTile } from '@/components/ui/KpiTile';
 import { DataTable, Column } from '@/components/ui/DataTable';
@@ -346,7 +347,7 @@ export default function CoursesPage() {
           onClick={() => selectCourse(row.code)}
           type="button"
         >
-          <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+          <Icon className="text-[20px]">chevron_right</Icon>
         </button>
       ),
     },
@@ -358,7 +359,7 @@ export default function CoursesPage() {
         {/* Top Context Meta-Bar & Simulated State Switcher */}
         <section className="w-full bg-surface-container-lowest shadow-[0_1px_0_rgba(199,199,185,0.3)] p-space-sm rounded-lg mb-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
           <div className="flex items-center gap-space-sm text-on-surface-variant font-ui-functional text-ui-functional flex-wrap">
-            <span className="material-symbols-outlined text-secondary text-[20px]">account_balance</span>
+            <Icon className="text-secondary text-[20px]">account_balance</Icon>
             <span className="font-semibold text-primary">University of Oxford</span>
             <span className="text-outline">•</span>
             <span>Faculty Senate Academic Console</span>
@@ -390,14 +391,14 @@ export default function CoursesPage() {
               className="flex-1 sm:flex-none justify-center px-3.5 py-2 rounded-lg bg-surface-container-lowest text-primary hover:bg-surface-container font-ui-functional text-xs sm:text-sm shadow-xs transition-all flex items-center gap-2 cursor-pointer border border-outline-variant/20"
               type="button"
             >
-              <span className="material-symbols-outlined text-[18px]">download_for_offline</span>
+              <Icon className="text-[18px]">download_for_offline</Icon>
               <span className="whitespace-nowrap">Export Curricular Catalog</span>
             </button>
             <button
               className="flex-1 sm:flex-none justify-center px-3.5 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-ui-functional text-xs sm:text-sm shadow-xs transition-all flex items-center gap-2 cursor-pointer font-medium"
               type="button"
             >
-              <span className="material-symbols-outlined text-[18px]">add</span>
+              <Icon className="text-[18px]">add</Icon>
               <span className="whitespace-nowrap">Add Academic Course</span>
             </button>
           </div>
@@ -459,9 +460,9 @@ export default function CoursesPage() {
         <section className="bg-surface-container-lowest border border-outline-variant/25 rounded-xl p-5 shadow-xs flex flex-col gap-4 mb-[var(--spacing-gutter)]">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-space-sm items-center">
             <div className="md:col-span-5 relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">
+              <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">
                 search
-              </span>
+              </Icon>
               <input
                 className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-bright shadow-sm transition-all"
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -471,11 +472,8 @@ export default function CoursesPage() {
               />
               {searchQuery && (
                 <button
-                  className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary text-[18px] cursor-pointer"
-                  onClick={() => setSearchQuery('')}
-                  type="button"
-                >
-                  close
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary cursor-pointer flex items-center justify-center">
+                  <Icon size={18}>close</Icon>
                 </button>
               )}
             </div>
@@ -488,9 +486,9 @@ export default function CoursesPage() {
                   <option>Medical Sciences Division</option>
                   <option>Social Sciences Division</option>
                 </select>
-                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+                <Icon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
                   expand_more
-                </span>
+                </Icon>
               </div>
               <div className="relative w-full sm:w-auto flex-1">
                 <select className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg bg-surface-container-lowest text-on-surface font-ui-functional text-ui-functional shadow-sm focus:outline-none cursor-pointer">
@@ -501,9 +499,9 @@ export default function CoursesPage() {
                   <option>Philosophy Faculty</option>
                   <option>Law Faculty</option>
                 </select>
-                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+                <Icon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
                   expand_more
-                </span>
+                </Icon>
               </div>
               <div className="relative w-full sm:w-auto flex-1">
                 <select className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg bg-surface-container-lowest text-on-surface font-ui-functional text-ui-functional shadow-sm focus:outline-none cursor-pointer">
@@ -512,18 +510,18 @@ export default function CoursesPage() {
                   <option>Upcoming (Hilary '25)</option>
                   <option>Archived Curricula</option>
                 </select>
-                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+                <Icon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
                   expand_more
-                </span>
+                </Icon>
               </div>
               <button
                 className="px-space-md py-2.5 rounded-lg bg-surface-container-highest text-primary hover:bg-surface-dim font-ui-functional text-ui-functional flex items-center gap-space-xs transition-colors whitespace-nowrap cursor-pointer"
                 onClick={() => setIsDrawerOpen(!isDrawerOpen)}
                 type="button"
               >
-                <span className="material-symbols-outlined text-[18px]">
+                <Icon className="text-[18px]">
                   {isDrawerOpen ? 'right_panel_close' : 'right_panel_open'}
-                </span>
+                </Icon>
                 <span>{isDrawerOpen ? 'Hide Dossier' : 'Open Dossier'}</span>
               </button>
             </div>
@@ -541,11 +539,8 @@ export default function CoursesPage() {
                   <span>{filter}</span>
                   <button
                     aria-label={`Remove filter ${filter}`}
-                    className="material-symbols-outlined text-[14px] hover:text-secondary cursor-pointer"
-                    onClick={() => removeFilter(filter)}
-                    type="button"
-                  >
-                    close
+                    className="hover:text-secondary cursor-pointer flex items-center justify-center">
+                    <Icon size={14}>close</Icon>
                   </button>
                 </span>
               ))}
@@ -563,9 +558,9 @@ export default function CoursesPage() {
               <span>
                 Sort: <strong className="text-primary font-medium">Curricular Code (Asc)</strong>
               </span>
-              <span className="material-symbols-outlined text-[18px] text-outline cursor-pointer hover:text-primary">
+              <Icon className="text-[18px] text-outline cursor-pointer hover:text-primary">
                 swap_vert
-              </span>
+              </Icon>
             </div>
           </div>
         </section>
@@ -600,7 +595,7 @@ export default function CoursesPage() {
                 </div>
                 <div className="flex items-center gap-1 font-ui-functional text-ui-functional">
                   <button className="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant disabled:opacity-50 cursor-not-allowed" disabled type="button">
-                    <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+                    <Icon className="text-[16px]">chevron_left</Icon>
                   </button>
                   <button className="w-8 h-8 rounded bg-primary text-on-primary font-semibold" type="button">1</button>
                   <button className="w-8 h-8 rounded hover:bg-surface-container text-on-surface cursor-pointer" type="button">2</button>
@@ -608,7 +603,7 @@ export default function CoursesPage() {
                   <span className="px-1 text-outline">…</span>
                   <button className="w-8 h-8 rounded hover:bg-surface-container text-on-surface cursor-pointer" type="button">52</button>
                   <button className="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant cursor-pointer" type="button">
-                    <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                    <Icon className="text-[16px]">chevron_right</Icon>
                   </button>
                 </div>
               </div>
@@ -631,7 +626,7 @@ export default function CoursesPage() {
                     onClick={() => setIsDrawerOpen(false)}
                     type="button"
                   >
-                    <span className="material-symbols-outlined text-[18px]">close</span>
+                    <Icon className="text-[18px]">close</Icon>
                   </button>
                 </div>
 
@@ -684,7 +679,7 @@ export default function CoursesPage() {
                   </div>
                   <div className="bg-surface-container-low rounded-lg p-space-sm flex items-center justify-between">
                     <div className="flex items-center gap-space-xs">
-                      <span className="material-symbols-outlined text-secondary text-[20px]">warning</span>
+                      <Icon className="text-secondary text-[20px]">warning</Icon>
                       <span className="text-xs text-on-surface font-medium">Formative Interventions</span>
                     </div>
                     <span className="font-bold text-sm text-secondary">{selectedCourse.activeInterventions} Active</span>
@@ -717,14 +712,14 @@ export default function CoursesPage() {
                     className="w-full py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-ui-functional text-ui-functional font-semibold shadow-sm transition-all flex items-center justify-center gap-space-xs cursor-pointer"
                     type="button"
                   >
-                    <span className="material-symbols-outlined text-[18px]">account_tree</span>
+                    <Icon className="text-[18px]">account_tree</Icon>
                     <span>Open Course Syllabus Dossier</span>
                   </button>
                   <button
                     className="w-full py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-ui-functional text-ui-functional font-medium transition-all flex items-center justify-center gap-space-xs cursor-pointer"
                     type="button"
                   >
-                    <span className="material-symbols-outlined text-[18px]">insights</span>
+                    <Icon className="text-[18px]">insights</Icon>
                     <span>Inspect Formative Telemetry</span>
                   </button>
                   <button
@@ -743,7 +738,7 @@ export default function CoursesPage() {
         {lensState === 'empty-directory' && (
           <div className="bg-surface-container-lowest rounded-xl shadow-sm p-space-xl text-center flex flex-col items-center justify-center gap-space-md max-w-2xl mx-auto my-space-lg">
             <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-secondary">
-              <span className="material-symbols-outlined text-[36px]">auto_stories</span>
+              <Icon className="text-[36px]">auto_stories</Icon>
             </div>
             <div className="flex flex-col gap-space-xs">
               <h3 className="font-headline-md text-headline-md text-primary">No Curricula Ingested for Michaelmas Term</h3>
@@ -757,14 +752,14 @@ export default function CoursesPage() {
                 onClick={() => setLensState('populated-drawer')}
                 type="button"
               >
-                <span className="material-symbols-outlined text-[18px]">sync_alt</span>
+                <Icon className="text-[18px]">sync_alt</Icon>
                 <span>Trigger SITS SIS Synchronization</span>
               </button>
               <button
                 className="px-space-md py-space-sm rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-ui-functional text-ui-functional flex items-center gap-space-xs cursor-pointer"
                 type="button"
               >
-                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                <Icon className="text-[18px]">upload_file</Icon>
                 <span>Upload Curricular CSV Manifest</span>
               </button>
             </div>
@@ -775,7 +770,7 @@ export default function CoursesPage() {
         {lensState === 'filtered-zero' && (
           <div className="bg-surface-container-lowest rounded-xl shadow-sm p-space-xl text-center flex flex-col items-center justify-center gap-space-md max-w-xl mx-auto my-space-lg">
             <div className="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center text-outline">
-              <span className="material-symbols-outlined text-[30px]">filter_alt_off</span>
+              <Icon className="text-[30px]">filter_alt_off</Icon>
             </div>
             <div className="flex flex-col gap-space-xs">
               <h3 className="font-headline-sm text-headline-sm text-primary">No Matching Collegiate Courses Found</h3>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { KpiTile } from '@/components/ui/KpiTile';
 import { DataTable, Column } from '@/components/ui/DataTable';
 
@@ -179,9 +180,9 @@ export default function OpsHealthPage() {
           <div className={`flex items-center gap-1.5 font-headline-md text-body-lg font-medium ${
             row.isDegraded ? 'text-secondary' : 'text-on-surface'
           }`}>
-            <span className={`material-symbols-outlined text-[16px] ${row.isDegraded ? 'text-secondary' : 'text-outline'}`}>
+            <Icon className={`text-[16px] ${row.isDegraded ? 'text-secondary' : 'text-outline'}`}>
               {row.icon}
-            </span>
+            </Icon>
             <span>{row.name}</span>
           </div>
           <span className="font-code-md text-code-md text-outline">{row.endpoint}</span>
@@ -274,14 +275,14 @@ export default function OpsHealthPage() {
             className="p-1 rounded hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
             title="Inspect Trace"
           >
-            <span className="material-symbols-outlined text-[16px]">troubleshoot</span>
+            <Icon className="text-[16px]">troubleshoot</Icon>
           </button>
           <button
             type="button"
             className="p-1 rounded hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
             title="View Logs"
           >
-            <span className="material-symbols-outlined text-[16px]">terminal</span>
+            <Icon className="text-[16px]">terminal</Icon>
           </button>
         </div>
       ),
@@ -344,7 +345,7 @@ export default function OpsHealthPage() {
           <div className="flex items-center gap-2 flex-wrap">
             {/* Auto-refresh dropdown selector */}
             <div className="relative flex items-center bg-surface-container-lowest px-2.5 py-1 rounded border border-outline-variant/30">
-              <span className="material-symbols-outlined text-[16px] text-outline mr-1.5">sync</span>
+              <Icon className="text-[16px] text-outline mr-1.5">sync</Icon>
               <span className="font-label-sm text-label-sm text-outline uppercase mr-1">Poll:</span>
               <select
                 value={pollInterval}
@@ -383,9 +384,9 @@ export default function OpsHealthPage() {
               onClick={handleRunProbe}
               className="flex items-center gap-1.5 px-3 py-1 bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-md text-label-md rounded transition-colors cursor-pointer border border-outline-variant/30"
             >
-              <span className={`material-symbols-outlined text-[15px] text-primary ${isProbing ? 'animate-spin' : ''}`}>
+              <Icon className={`text-[15px] text-primary ${isProbing ? 'animate-spin' : ''}`}>
                 {isProbing ? 'refresh' : 'play_arrow'}
-              </span>
+              </Icon>
               <span>{probeStatusText}</span>
             </button>
 
@@ -394,7 +395,7 @@ export default function OpsHealthPage() {
               type="button"
               className="flex items-center gap-1.5 px-3 py-1 bg-primary text-on-primary hover:bg-primary-fixed-dim font-label-md text-label-md font-bold rounded transition-colors cursor-pointer shadow-xs"
             >
-              <span className="material-symbols-outlined text-[15px]">download</span>
+              <Icon className="text-[15px]">download</Icon>
               <span>Export Snapshot</span>
             </button>
           </div>
@@ -418,7 +419,7 @@ export default function OpsHealthPage() {
             <span className="font-code-md text-code-md text-secondary">Document Queue (+18%)</span>
           </div>
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container text-on-surface-variant ml-auto border border-outline-variant/30">
-            <span className="material-symbols-outlined text-[13px] text-outline">history</span>
+            <Icon className="text-[13px] text-outline">history</Icon>
             <span>Global Sweep:</span>
             <span className="font-code-md text-code-md text-on-surface">{sweepSeconds}s ago</span>
           </div>
@@ -525,7 +526,7 @@ export default function OpsHealthPage() {
 
               {/* Table Search Input */}
               <div className="relative flex items-center bg-surface-container-lowest px-2.5 py-1 rounded border border-outline-variant/30">
-                <span className="material-symbols-outlined text-[16px] text-outline mr-2">search</span>
+                <Icon className="text-[16px] text-outline mr-2">search</Icon>
                 <input
                   type="text"
                   value={searchQuery}
@@ -551,7 +552,7 @@ export default function OpsHealthPage() {
         <div className="xl:col-span-7 flex flex-col bg-surface-container-low rounded p-4 border border-outline-variant/30">
           <div className="flex items-center justify-between pb-3 border-b border-outline-variant/30">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-outline">history_toggle_off</span>
+              <Icon className="text-[18px] text-outline">history_toggle_off</Icon>
               <span className="font-headline-md text-headline-md text-on-surface font-semibold">
                 Recent Incidents &amp; Operational Events
               </span>
@@ -678,7 +679,7 @@ export default function OpsHealthPage() {
             </div>
             <div className="flex items-center justify-between pt-3 mt-3 bg-surface-container-lowest/60 px-3 py-1.5 rounded font-label-sm text-label-sm border border-outline-variant/30">
               <div className="flex items-center gap-2 text-outline">
-                <span className="material-symbols-outlined text-[15px] text-primary">speed</span>
+                <Icon className="text-[15px] text-primary">speed</Icon>
                 <span>Current Burn Rate:</span>
                 <span className="font-code-md text-code-md text-on-surface font-semibold">0.04x (Safe)</span>
               </div>

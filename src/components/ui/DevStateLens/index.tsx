@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
+import { SlidersHorizontal, X, Check } from 'lucide-react';
 
 export interface DevStateOption {
   id: string;
@@ -34,7 +36,7 @@ export function DevStateLens({
         <div className="bg-surface-container-highest/95 backdrop-blur-md border border-outline-variant p-space-sm rounded-xl shadow-xl flex flex-col gap-space-xs min-w-[240px] animate-in fade-in slide-in-from-bottom-2 duration-150">
           <div className="flex items-center justify-between px-space-xs pb-space-xs border-b border-outline-variant/50">
             <span className="font-label-caps text-label-caps uppercase text-secondary font-bold flex items-center gap-space-xs">
-              <span className="material-symbols-outlined text-[14px]">tune</span>
+              <Icon icon={SlidersHorizontal} size={14} />
               {label}
             </span>
             <button
@@ -43,7 +45,7 @@ export function DevStateLens({
               onClick={() => setIsOpen(false)}
               type="button"
             >
-              <span className="material-symbols-outlined text-[16px]">close</span>
+              <Icon icon={X} size={16} />
             </button>
           </div>
           <div className="flex flex-col gap-1 py-1">
@@ -65,7 +67,7 @@ export function DevStateLens({
                   type="button"
                 >
                   <span>{option.label}</span>
-                  {isSelected && <span className="material-symbols-outlined text-[14px]">check</span>}
+                  {isSelected && <Icon icon={Check} size={14} />}
                 </button>
               );
             })}
@@ -79,7 +81,7 @@ export function DevStateLens({
         title="Toggle Dev State Lens"
         type="button"
       >
-        <span className="material-symbols-outlined text-[16px]">tune</span>
+        <Icon icon={SlidersHorizontal} size={16} />
         <span>Demo State</span>
         <span className="w-2 h-2 rounded-full bg-secondary"></span>
       </button>

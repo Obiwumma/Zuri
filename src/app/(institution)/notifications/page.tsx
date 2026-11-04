@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 
 interface NotificationItem {
@@ -200,7 +201,7 @@ export default function NotificationsPage() {
             onClick={markAllAsRead}
             className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            <span className="material-symbols-outlined text-[16px] text-primary">mark_email_read</span>
+            <Icon className="text-[16px] text-primary">mark_email_read</Icon>
             Mark All as Read
           </button>
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-surface-container border border-outline-variant/30 text-xs">
@@ -217,7 +218,7 @@ export default function NotificationsPage() {
         <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-error-container/30 text-error flex items-center justify-center font-bold">
-              <span className="material-symbols-outlined text-[20px]">warning</span>
+              <Icon className="text-[20px]">warning</Icon>
             </div>
             <div>
               <p className="text-xs font-label-caps uppercase tracking-wider text-on-surface-variant">Unread Alerts</p>
@@ -232,7 +233,7 @@ export default function NotificationsPage() {
         <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary-fixed/40 text-primary flex items-center justify-center font-bold">
-              <span className="material-symbols-outlined text-[20px]">send_and_archive</span>
+              <Icon className="text-[20px]">send_and_archive</Icon>
             </div>
             <div>
               <p className="text-xs font-label-caps uppercase tracking-wider text-on-surface-variant">Dispatched Today</p>
@@ -247,7 +248,7 @@ export default function NotificationsPage() {
         <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-tertiary-container/30 text-tertiary flex items-center justify-center font-bold">
-              <span className="material-symbols-outlined text-[20px]">verified_user</span>
+              <Icon className="text-[20px]">verified_user</Icon>
             </div>
             <div>
               <p className="text-xs font-label-caps uppercase tracking-wider text-on-surface-variant">Delivery Rate</p>
@@ -310,9 +311,9 @@ export default function NotificationsPage() {
         <div className="lg:col-span-7 space-y-3">
           {filteredNotifications.length === 0 ? (
             <div className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/20 text-center">
-              <span className="material-symbols-outlined text-3xl text-on-surface-variant/40 mb-2">
+              <Icon className="text-3xl text-on-surface-variant/40 mb-2">
                 notifications_off
-              </span>
+              </Icon>
               <p className="text-sm font-semibold text-on-surface">No matching notifications</p>
               <p className="text-xs text-on-surface-variant/70 mt-1">Try resetting your filter or search term.</p>
             </div>
@@ -417,7 +418,7 @@ export default function NotificationsPage() {
                   className="w-full py-2 px-4 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   {selectedNotification.actionText}
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  <Icon className="text-[16px]">arrow_forward</Icon>
                 </button>
               )}
               <button

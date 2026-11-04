@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { KpiTile } from '@/components/ui/KpiTile';
 
 type LensState = 'review' | 'processing' | 'triage' | 'empty' | 'retry';
@@ -85,7 +86,7 @@ export default function ExtractionPage() {
               </button>
             </div>
             <div className="hidden xl:flex items-center gap-space-xs text-on-surface-variant font-label-caps text-label-caps uppercase">
-              <span className="material-symbols-outlined text-[15px] text-secondary">verified</span>
+              <Icon className="text-[15px] text-secondary">verified</Icon>
               <span>Registry Engine v4.2</span>
             </div>
           </div>
@@ -110,16 +111,16 @@ export default function ExtractionPage() {
                 type="button"
                 className="group px-space-md py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-ui-functional text-ui-functional transition-all flex items-center gap-space-xs shadow-xs cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[18px] text-secondary group-hover:rotate-180 transition-transform duration-500">
+                <Icon className="text-[18px] text-secondary group-hover:rotate-180 transition-transform duration-500">
                   sync
-                </span>
+                </Icon>
                 <span>Re-index Knowledge Cache</span>
               </button>
               <button
                 type="button"
                 className="px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-ui-functional text-ui-functional transition-all flex items-center gap-space-xs shadow-sm cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[20px]">upload_file</span>
+                <Icon className="text-[20px]">upload_file</Icon>
                 <span className="font-semibold">+ Upload Source Document</span>
               </button>
             </div>
@@ -165,7 +166,7 @@ export default function ExtractionPage() {
           <div className="relative bg-surface-container-low rounded-2xl p-space-lg mb-space-xl overflow-hidden shadow-xs">
             <div className="relative z-10 flex flex-col items-center text-center max-w-2xl mx-auto py-space-sm">
               <div className="w-14 h-14 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center mb-space-sm text-primary">
-                <span className="material-symbols-outlined text-[28px]">mark_as_unread</span>
+                <Icon className="text-[28px]">mark_as_unread</Icon>
               </div>
               <h2 className="font-headline-sm text-headline-sm font-serif text-primary mb-space-xs">
                 Drag and drop institutional schedules, forwarded messages, or official registers
@@ -176,19 +177,19 @@ export default function ExtractionPage() {
               {/* Academic Source Badges */}
               <div className="flex flex-wrap justify-center gap-space-xs mb-space-md">
                 <span className="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider">
-                  <span className="material-symbols-outlined text-[14px] text-secondary">picture_as_pdf</span>
+                  <Icon className="text-[14px] text-secondary">picture_as_pdf</Icon>
                   PDF Examination Schedules
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider">
-                  <span className="material-symbols-outlined text-[14px] text-secondary">chat</span>
+                  <Icon className="text-[14px] text-secondary">chat</Icon>
                   Forwarded Chat / WhatsApp Export
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider">
-                  <span className="material-symbols-outlined text-[14px] text-secondary">document_scanner</span>
+                  <Icon className="text-[14px] text-secondary">document_scanner</Icon>
                   Scanned Collegiate Timetables
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider">
-                  <span className="material-symbols-outlined text-[14px] text-secondary">newspaper</span>
+                  <Icon className="text-[14px] text-secondary">newspaper</Icon>
                   Departmental Gazettes
                 </span>
               </div>
@@ -197,14 +198,14 @@ export default function ExtractionPage() {
                   type="button"
                   className="px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-ui-functional text-ui-functional font-medium shadow-sm transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                  <Icon className="text-[18px]">add_circle</Icon>
                   <span>Select Document from Faculty Drive</span>
                 </button>
                 <button
                   type="button"
                   className="px-space-md py-2.5 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface font-ui-functional text-ui-functional shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[18px] text-secondary">content_paste</span>
+                  <Icon className="text-[18px] text-secondary">content_paste</Icon>
                   <span>Paste Raw Text / Chat Rota</span>
                 </button>
               </div>
@@ -228,10 +229,10 @@ export default function ExtractionPage() {
                       </div>
                       <div className="flex items-center gap-1 text-on-surface-variant">
                         <button type="button" title="Filter list" className="p-1 hover:bg-surface-container rounded cursor-pointer">
-                          <span className="material-symbols-outlined text-[18px]">filter_list</span>
+                          <Icon className="text-[18px]">filter_list</Icon>
                         </button>
                         <button type="button" title="Refresh" className="p-1 hover:bg-surface-container rounded cursor-pointer">
-                          <span className="material-symbols-outlined text-[18px]">refresh</span>
+                          <Icon className="text-[18px]">refresh</Icon>
                         </button>
                       </div>
                     </div>
@@ -249,7 +250,7 @@ export default function ExtractionPage() {
                       >
                         <div className="flex items-start gap-space-sm">
                           <div className="w-10 h-10 rounded-lg bg-secondary-fixed flex items-center justify-center flex-shrink-0 text-on-secondary-fixed">
-                            <span className="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+                            <Icon className="text-[20px]">picture_as_pdf</Icon>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
@@ -291,7 +292,7 @@ export default function ExtractionPage() {
                       >
                         <div className="flex items-start gap-space-sm">
                           <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 text-on-surface-variant">
-                            <span className="material-symbols-outlined text-[20px]">description</span>
+                            <Icon className="text-[20px]">description</Icon>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
@@ -309,7 +310,7 @@ export default function ExtractionPage() {
                                 Complete
                               </span>
                               <span className="inline-flex items-center gap-1 text-[11px] font-ui-functional text-secondary">
-                                <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                                <Icon className="text-[13px]">check_circle</Icon>
                                 Previously cached • 99%
                               </span>
                             </div>
@@ -328,7 +329,7 @@ export default function ExtractionPage() {
                       >
                         <div className="flex items-start gap-space-sm">
                           <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 text-on-surface-variant">
-                            <span className="material-symbols-outlined text-[20px]">chat</span>
+                            <Icon className="text-[20px]">chat</Icon>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
@@ -345,7 +346,7 @@ export default function ExtractionPage() {
                                 Complete
                               </span>
                               <span className="inline-flex items-center gap-1 text-[11px] font-ui-functional text-on-surface-variant">
-                                <span className="material-symbols-outlined text-[13px] text-secondary">cached</span>
+                                <Icon className="text-[13px] text-secondary">cached</Icon>
                                 Registry synced • 94%
                               </span>
                             </div>
@@ -364,7 +365,7 @@ export default function ExtractionPage() {
                       >
                         <div className="flex items-start gap-space-sm">
                           <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 text-on-surface-variant">
-                            <span className="material-symbols-outlined text-[20px]">document_scanner</span>
+                            <Icon className="text-[20px]">document_scanner</Icon>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
@@ -399,7 +400,7 @@ export default function ExtractionPage() {
                       >
                         <div className="flex items-start gap-space-sm">
                           <div className="w-10 h-10 rounded-lg bg-secondary-container/30 flex items-center justify-center flex-shrink-0 text-secondary">
-                            <span className="material-symbols-outlined text-[20px] animate-spin">autorenew</span>
+                            <Icon className="text-[20px] animate-spin">autorenew</Icon>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
@@ -422,7 +423,7 @@ export default function ExtractionPage() {
                   {/* Academic Authority Notice Box */}
                   <div className="bg-surface-container-low rounded-xl p-space-md">
                     <div className="flex items-start gap-space-sm">
-                      <span className="material-symbols-outlined text-secondary text-[22px] flex-shrink-0">shield_lock</span>
+                      <Icon className="text-secondary text-[22px] flex-shrink-0">shield_lock</Icon>
                       <div className="flex flex-col">
                         <span className="font-ui-functional text-ui-functional font-semibold text-primary">
                           InCommon Federation &amp; Oxford Registry Policy
@@ -469,7 +470,7 @@ export default function ExtractionPage() {
                     <div className="md:col-span-5 bg-surface-container-low rounded-lg p-space-sm flex flex-col">
                       <div className="flex items-center justify-between pb-2 mb-2">
                         <span className="font-label-caps text-label-caps uppercase text-secondary font-semibold flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">preview</span>
+                          <Icon className="text-[14px]">preview</Icon>
                           Source Roster Sheet
                         </span>
                         <span className="font-label-caps text-[11px] text-outline">Page 1 of 3</span>
@@ -526,7 +527,7 @@ export default function ExtractionPage() {
                       <div className="mt-space-sm flex items-center justify-between text-on-surface-variant">
                         <span className="font-label-caps text-[11px]">OCR Engine: Lexi Rota Parser</span>
                         <button type="button" className="font-ui-functional text-[12px] text-secondary hover:underline flex items-center gap-0.5 cursor-pointer">
-                          <span className="material-symbols-outlined text-[14px]">zoom_in</span>
+                          <Icon className="text-[14px]">zoom_in</Icon>
                           View High-Res Scan
                         </button>
                       </div>
@@ -536,7 +537,7 @@ export default function ExtractionPage() {
                     <div className="md:col-span-7 flex flex-col gap-space-sm">
                       <div className="flex items-center justify-between pb-1">
                         <span className="font-label-caps text-label-caps uppercase text-secondary font-semibold flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">table_chart</span>
+                          <Icon className="text-[14px]">table_chart</Icon>
                           Synthesized Academic Records
                         </span>
                         <span className="font-label-caps text-[11px] text-on-surface-variant">Registry Target: Michaelmas 2024</span>
@@ -589,7 +590,7 @@ export default function ExtractionPage() {
                         }`}>
                           <div className="flex items-center justify-between">
                             <span className="font-label-caps text-[10px] uppercase text-secondary font-bold flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[13px]">{isVenueResolved ? 'check_circle' : 'warning'}</span>
+                              <Icon className="text-[13px]">{isVenueResolved ? 'check_circle' : 'warning'}</Icon>
                               {isVenueResolved ? 'Resolved Field: Venue Allocation' : 'Flagged Field: Venue & Room Allocation'}
                             </span>
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-label-caps text-[10px] uppercase font-bold ${
@@ -616,7 +617,7 @@ export default function ExtractionPage() {
                                     : 'bg-primary text-on-primary hover:bg-primary-container'
                                 }`}
                               >
-                                <span className="material-symbols-outlined text-[14px]">{isVenueResolved ? 'done_all' : 'check'}</span>
+                                <Icon className="text-[14px]">{isVenueResolved ? 'done_all' : 'check'}</Icon>
                                 <span>{isVenueResolved ? 'Verified' : 'Accept'}</span>
                               </button>
                             </div>
@@ -675,7 +676,7 @@ export default function ExtractionPage() {
                       type="button"
                       className="w-full sm:w-auto px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-ui-functional text-ui-functional font-semibold transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[18px]">publish</span>
+                      <Icon className="text-[18px]">publish</Icon>
                       <span>
                         {isVenueResolved
                           ? 'Confirm & Publish to Academic Timetable (All Flags Resolved)'
@@ -693,7 +694,7 @@ export default function ExtractionPage() {
                 <div className="relative w-20 h-20 mb-space-md flex items-center justify-center">
                   <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping"></div>
                   <div className="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md">
-                    <span className="material-symbols-outlined text-[32px] animate-spin">cyclone</span>
+                    <Icon className="text-[32px] animate-spin">cyclone</Icon>
                   </div>
                 </div>
                 <div className="font-label-caps text-label-caps uppercase text-secondary tracking-widest mb-1">
@@ -710,21 +711,21 @@ export default function ExtractionPage() {
                   <div className="space-y-3 font-ui-functional text-ui-functional text-left">
                     <div className="flex items-center justify-between text-primary">
                       <span className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-secondary text-[18px]">check_circle</span>
+                        <Icon className="text-secondary text-[18px]">check_circle</Icon>
                         High-resolution OCR layout decomposition
                       </span>
                       <span className="font-label-caps text-[11px] text-secondary">Complete</span>
                     </div>
                     <div className="flex items-center justify-between text-primary">
                       <span className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-secondary text-[18px] animate-spin">sync</span>
+                        <Icon className="text-secondary text-[18px] animate-spin">sync</Icon>
                         Cross-referencing Oxford Division Codes
                       </span>
                       <span className="font-label-caps text-[11px] text-secondary">Processing...</span>
                     </div>
                     <div className="flex items-center justify-between text-on-surface-variant opacity-60">
                       <span className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px]">schedule</span>
+                        <Icon className="text-[18px]">schedule</Icon>
                         Registry cache population &amp; calendar publish
                       </span>
                       <span className="font-label-caps text-[11px]">Queued</span>
@@ -739,7 +740,7 @@ export default function ExtractionPage() {
               <div className="flex flex-col gap-space-md">
                 <div className="bg-secondary-container/30 rounded-xl p-space-md flex items-center justify-between">
                   <div className="flex items-center gap-space-sm">
-                    <span className="material-symbols-outlined text-secondary text-[24px]">flag</span>
+                    <Icon className="text-secondary text-[24px]">flag</Icon>
                     <div>
                       <div className="font-ui-functional text-ui-functional font-bold text-primary">
                         Low-Confidence Triage Queue (3 Ambiguities across 2 Documents)
@@ -834,7 +835,7 @@ export default function ExtractionPage() {
             {lensState === 'empty' && (
               <div className="flex flex-col items-center justify-center bg-surface-container-lowest rounded-2xl p-space-xl shadow-xs text-center min-h-[400px]">
                 <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-space-md text-secondary">
-                  <span className="material-symbols-outlined text-[36px]">cloud_upload</span>
+                  <Icon className="text-[36px]">cloud_upload</Icon>
                 </div>
                 <h3 className="font-headline-sm text-headline-sm font-serif text-primary mb-space-xs">
                   No Ingested Documents Pending Review
@@ -856,7 +857,7 @@ export default function ExtractionPage() {
             {lensState === 'retry' && (
               <div className="flex flex-col items-center justify-center bg-surface-container-lowest rounded-2xl p-space-xl shadow-xs text-center min-h-[400px]">
                 <div className="w-16 h-16 rounded-full bg-error-container text-error flex items-center justify-center mb-space-md">
-                  <span className="material-symbols-outlined text-[36px]">error_outline</span>
+                  <Icon className="text-[36px]">error_outline</Icon>
                 </div>
                 <div className="font-label-caps text-label-caps uppercase text-error tracking-widest mb-1">
                   OCR Document Exception
@@ -872,7 +873,7 @@ export default function ExtractionPage() {
                     type="button"
                     className="px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-ui-functional text-ui-functional transition-all flex items-center gap-2 cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[18px]">refresh</span>
+                    <Icon className="text-[18px]">refresh</Icon>
                     <span>Reprocess with Enhanced Optical Filters</span>
                   </button>
                   <button

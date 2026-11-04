@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useId } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FormField } from '@/components/ui/FormField';
 import { DevStateLens, type DevStateOption } from '@/components/ui/DevStateLens';
 import {
@@ -17,7 +18,7 @@ import {
   type UserSession,
   type NotificationPreferences,
 } from '@/lib/api/users';
-import { RateLimitedError, ServiceUnavailableError, ApiError } from '@/lib/api/client';
+import { RateLimitedError, ServiceUnavailableError, ApiError } from '@/lib/api/errors';
 import type { User } from '@/lib/api/types';
 import { parseZuriDate } from '@/lib/api/dates';
 
@@ -528,7 +529,7 @@ export default function SettingsPage() {
       {rateLimitState.isLimited && (
         <div className="mb-6 bg-amber-500/10 border border-amber-500/40 text-amber-200 rounded-xl p-4 flex items-center justify-between shadow-sm animate-in fade-in duration-200">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-amber-400 text-2xl animate-pulse">timer</span>
+            <Icon className="text-amber-400 text-2xl animate-pulse">timer</Icon>
             <div>
               <h4 className="font-semibold text-sm text-amber-100">Rate Limit Exceeded (HTTP 429)</h4>
               <p className="text-xs text-amber-300/90 mt-0.5">
@@ -551,7 +552,7 @@ export default function SettingsPage() {
       {serviceState.isUnavailable && (
         <div className="mb-6 bg-red-500/10 border border-red-500/40 text-red-200 rounded-xl p-4 flex items-center justify-between shadow-sm animate-in fade-in duration-200">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-red-400 text-2xl">cloud_off</span>
+            <Icon className="text-red-400 text-2xl">cloud_off</Icon>
             <div>
               <h4 className="font-semibold text-sm text-red-100">Downstream Service Unavailable (HTTP 503)</h4>
               <p className="text-xs text-red-300/90 mt-0.5">
@@ -570,7 +571,7 @@ export default function SettingsPage() {
               }}
               type="button"
             >
-              <span className="material-symbols-outlined text-sm">refresh</span>
+              <Icon className="text-sm">refresh</Icon>
               Retry
             </button>
             <button
@@ -666,7 +667,7 @@ export default function SettingsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-primary text-2xl">shield_person</span>
+                <Icon className="text-primary text-2xl">shield_person</Icon>
                 <h2 className="font-serif text-xl sm:text-2xl font-bold text-primary">Account & Security</h2>
               </div>
               <p className="text-xs sm:text-sm text-on-surface-variant/80 mt-1">
@@ -725,20 +726,20 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   {isLoadingUser && (
-                    <span className="material-symbols-outlined text-primary animate-spin text-lg">sync</span>
+                    <Icon className="text-primary animate-spin text-lg">sync</Icon>
                   )}
                 </div>
 
                 {profileSuccessMessage && (
                   <div className="mb-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs rounded-lg p-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+                    <Icon className="text-emerald-400 text-base">check_circle</Icon>
                     <span>{profileSuccessMessage}</span>
                   </div>
                 )}
 
                 {profileError && (
                   <div className="mb-4 bg-red-500/10 border border-red-500/30 text-red-300 text-xs rounded-lg p-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-red-400 text-base">error</span>
+                    <Icon className="text-red-400 text-base">error</Icon>
                     <span>{profileError}</span>
                   </div>
                 )}
@@ -805,7 +806,7 @@ export default function SettingsPage() {
                       className="bg-primary text-on-primary font-ui-functional font-semibold text-xs px-5 py-2.5 rounded-lg shadow-sm hover:opacity-90 active:scale-98 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                     >
                       {isSavingProfile && (
-                        <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                        <Icon className="text-sm animate-spin">progress_activity</Icon>
                       )}
                       <span>Save Profile Changes</span>
                     </button>
@@ -828,9 +829,9 @@ export default function SettingsPage() {
                       </div>
                       <div className="text-xs font-mono font-medium text-on-surface mt-1 flex items-center gap-1.5">
                         <span>{user?.email || 'admin@veritas.edu.ng'}</span>
-                        <span className="material-symbols-outlined text-emerald-500 text-sm" title="Verified Email">
+                        <Icon className="text-emerald-500 text-sm" title="Verified Email">
                           verified
-                        </span>
+                        </Icon>
                       </div>
                     </div>
 
@@ -857,7 +858,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="pt-4 border-t border-outline-variant/20 text-[11px] text-on-surface-variant/70 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[14px]">lock</span>
+                  <Icon className="text-[14px]">lock</Icon>
                   <span>Institutional permissions verified by RS256 token</span>
                 </div>
               </div>
@@ -871,7 +872,7 @@ export default function SettingsPage() {
               <div className="bg-surface-container-lowest border border-outline-variant/25 rounded-2xl p-6 shadow-xs">
                 <div className="max-w-2xl">
                   <div className="flex items-center gap-2 pb-3 border-b border-outline-variant/20">
-                    <span className="material-symbols-outlined text-primary text-xl">password</span>
+                    <Icon className="text-primary text-xl">password</Icon>
                     <div>
                       <h3 className="font-serif text-base font-bold text-primary">Change Password</h3>
                       <p className="text-xs text-on-surface-variant/80">
@@ -882,14 +883,14 @@ export default function SettingsPage() {
 
                   {passwordSuccessMessage && (
                     <div className="my-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs rounded-lg p-3 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+                      <Icon className="text-emerald-400 text-base">check_circle</Icon>
                       <span>{passwordSuccessMessage}</span>
                     </div>
                   )}
 
                   {passwordError && (
                     <div className="my-4 bg-red-500/10 border border-red-500/30 text-red-300 text-xs rounded-lg p-3 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-red-400 text-base">error</span>
+                      <Icon className="text-red-400 text-base">error</Icon>
                       <span>{passwordError}</span>
                     </div>
                   )}
@@ -912,9 +913,9 @@ export default function SettingsPage() {
                           onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface cursor-pointer"
                         >
-                          <span className="material-symbols-outlined text-[18px]">
+                          <Icon className="text-[18px]">
                             {showCurrentPassword ? 'visibility_off' : 'visibility'}
-                          </span>
+                          </Icon>
                         </button>
                       </div>
                     </FormField>
@@ -937,9 +938,9 @@ export default function SettingsPage() {
                             onClick={() => setShowNewPassword(!showNewPassword)}
                             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface cursor-pointer"
                           >
-                            <span className="material-symbols-outlined text-[18px]">
+                            <Icon className="text-[18px]">
                               {showNewPassword ? 'visibility_off' : 'visibility'}
-                            </span>
+                            </Icon>
                           </button>
                         </div>
                       </FormField>
@@ -969,52 +970,44 @@ export default function SettingsPage() {
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`material-symbols-outlined text-base ${
-                              passwordCriteria.length ? 'text-emerald-500' : 'text-on-surface-variant/40'
-                            }`}
+                          <Icon
+                            className={`text-base ${ passwordCriteria.length ? 'text-emerald-500' : 'text-on-surface-variant/40' }`}
                           >
                             {passwordCriteria.length ? 'check_circle' : 'radio_button_unchecked'}
-                          </span>
+                          </Icon>
                           <span className={passwordCriteria.length ? 'text-on-surface font-medium' : 'text-on-surface-variant/70'}>
                             8+ characters
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`material-symbols-outlined text-base ${
-                              passwordCriteria.uppercase ? 'text-emerald-500' : 'text-on-surface-variant/40'
-                            }`}
+                          <Icon
+                            className={`text-base ${ passwordCriteria.uppercase ? 'text-emerald-500' : 'text-on-surface-variant/40' }`}
                           >
                             {passwordCriteria.uppercase ? 'check_circle' : 'radio_button_unchecked'}
-                          </span>
+                          </Icon>
                           <span className={passwordCriteria.uppercase ? 'text-on-surface font-medium' : 'text-on-surface-variant/70'}>
                             At least one uppercase letter (A-Z)
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`material-symbols-outlined text-base ${
-                              passwordCriteria.number ? 'text-emerald-500' : 'text-on-surface-variant/40'
-                            }`}
+                          <Icon
+                            className={`text-base ${ passwordCriteria.number ? 'text-emerald-500' : 'text-on-surface-variant/40' }`}
                           >
                             {passwordCriteria.number ? 'check_circle' : 'radio_button_unchecked'}
-                          </span>
+                          </Icon>
                           <span className={passwordCriteria.number ? 'text-on-surface font-medium' : 'text-on-surface-variant/70'}>
                             At least one number (0-9)
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`material-symbols-outlined text-base ${
-                              passwordCriteria.symbol ? 'text-emerald-500' : 'text-on-surface-variant/40'
-                            }`}
+                          <Icon
+                            className={`text-base ${ passwordCriteria.symbol ? 'text-emerald-500' : 'text-on-surface-variant/40' }`}
                           >
                             {passwordCriteria.symbol ? 'check_circle' : 'radio_button_unchecked'}
-                          </span>
+                          </Icon>
                           <span className={passwordCriteria.symbol ? 'text-on-surface font-medium' : 'text-on-surface-variant/70'}>
                             At least one symbol (!@#$%^&*)
                           </span>
@@ -1035,7 +1028,7 @@ export default function SettingsPage() {
                         className="bg-primary text-on-primary font-ui-functional font-semibold text-xs px-5 py-2.5 rounded-lg shadow-sm hover:opacity-90 active:scale-98 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                       >
                         {isChangingPassword && (
-                          <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                          <Icon className="text-sm animate-spin">progress_activity</Icon>
                         )}
                         <span>Update Password</span>
                       </button>
@@ -1049,7 +1042,7 @@ export default function SettingsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-outline-variant/20 gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary text-xl">devices</span>
+                      <Icon className="text-primary text-xl">devices</Icon>
                       <h3 className="font-serif text-base font-bold text-primary">Active Sessions & Devices</h3>
                     </div>
                     <p className="text-xs text-on-surface-variant/80 mt-0.5">
@@ -1065,9 +1058,9 @@ export default function SettingsPage() {
                       className="p-1.5 rounded-lg border border-outline-variant/30 text-on-surface-variant hover:text-on-surface hover:bg-surface-container text-xs flex items-center gap-1 cursor-pointer"
                       title="Refresh session list"
                     >
-                      <span className={`material-symbols-outlined text-sm ${isLoadingSessions ? 'animate-spin' : ''}`}>
+                      <Icon className={`text-sm ${isLoadingSessions ? 'animate-spin' : ''}`}>
                         refresh
-                      </span>
+                      </Icon>
                     </button>
                     <button
                       type="button"
@@ -1075,7 +1068,7 @@ export default function SettingsPage() {
                       disabled={isSigningOutEverywhere || sessions.length <= 1}
                       className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[16px]">logout</span>
+                      <Icon className="text-[16px]">logout</Icon>
                       <span>Sign Out Everywhere</span>
                     </button>
                   </div>
@@ -1083,14 +1076,14 @@ export default function SettingsPage() {
 
                 {sessionsSuccessMessage && (
                   <div className="my-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs rounded-lg p-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+                    <Icon className="text-emerald-400 text-base">check_circle</Icon>
                     <span>{sessionsSuccessMessage}</span>
                   </div>
                 )}
 
                 {sessionsError && (
                   <div className="my-4 bg-red-500/10 border border-red-500/30 text-red-300 text-xs rounded-lg p-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-red-400 text-base">error</span>
+                    <Icon className="text-red-400 text-base">error</Icon>
                     <span>{sessionsError}</span>
                   </div>
                 )}
@@ -1117,9 +1110,9 @@ export default function SettingsPage() {
                 ) : sessions.length === 0 ? (
                   /* Empty State */
                   <div className="py-12 text-center flex flex-col items-center justify-center">
-                    <span className="material-symbols-outlined text-4xl text-on-surface-variant/40 mb-2">
+                    <Icon className="text-4xl text-on-surface-variant/40 mb-2">
                       devices_off
-                    </span>
+                    </Icon>
                     <h4 className="text-sm font-semibold text-on-surface">No Active Sessions</h4>
                     <p className="text-xs text-on-surface-variant/80 mt-1 max-w-sm">
                       There are no active devices recorded for this account.
@@ -1147,13 +1140,13 @@ export default function SettingsPage() {
                         >
                           <div className="flex items-start gap-3.5">
                             <div className="p-2 rounded-xl bg-surface-container text-primary border border-outline-variant/20 mt-0.5">
-                              <span className="material-symbols-outlined text-xl">
+                              <Icon className="text-xl">
                                 {sess.deviceType === 'mobile'
                                   ? 'smartphone'
                                   : sess.deviceType === 'tablet'
                                   ? 'tablet'
                                   : 'laptop_mac'}
-                              </span>
+                              </Icon>
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
@@ -1199,11 +1192,11 @@ export default function SettingsPage() {
                                 className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
                               >
                                 {revokingSessionId === sess.id ? (
-                                  <span className="material-symbols-outlined text-sm animate-spin">
+                                  <Icon className="text-sm animate-spin">
                                     progress_activity
-                                  </span>
+                                  </Icon>
                                 ) : (
-                                  <span className="material-symbols-outlined text-[14px]">close</span>
+                                  <Icon className="text-[14px]">close</Icon>
                                 )}
                                 <span>Revoke</span>
                               </button>
@@ -1224,7 +1217,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between pb-4 border-b border-outline-variant/20 mb-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-xl">notifications_active</span>
+                    <Icon className="text-primary text-xl">notifications_active</Icon>
                     <h3 className="font-serif text-base font-bold text-primary">Notification Preferences & Quiet Hours</h3>
                   </div>
                   <p className="text-xs text-on-surface-variant/80 mt-0.5">
@@ -1232,20 +1225,20 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 {isLoadingPreferences && (
-                  <span className="material-symbols-outlined text-primary animate-spin text-lg">sync</span>
+                  <Icon className="text-primary animate-spin text-lg">sync</Icon>
                 )}
               </div>
 
               {preferencesSuccessMessage && (
                 <div className="mb-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs rounded-lg p-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+                  <Icon className="text-emerald-400 text-base">check_circle</Icon>
                   <span>{preferencesSuccessMessage}</span>
                 </div>
               )}
 
               {preferencesError && (
                 <div className="mb-4 bg-red-500/10 border border-red-500/30 text-red-300 text-xs rounded-lg p-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-red-400 text-base">error</span>
+                  <Icon className="text-red-400 text-base">error</Icon>
                   <span>{preferencesError}</span>
                 </div>
               )}
@@ -1308,7 +1301,7 @@ export default function SettingsPage() {
                 {/* Quiet Hours Section */}
                 <div className="p-4 rounded-xl bg-surface-container-low/80 border border-outline-variant/25 space-y-4">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-secondary text-lg">bedtime</span>
+                    <Icon className="text-secondary text-lg">bedtime</Icon>
                     <div>
                       <h4 className="text-xs sm:text-sm font-bold text-primary">Quiet Hours Policy</h4>
                       <p className="text-[11px] text-on-surface-variant/80">
@@ -1354,7 +1347,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="text-[11px] text-on-surface-variant/70 flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[14px]">schedule</span>
+                    <Icon className="text-[14px]">schedule</Icon>
                     <span>
                       Window: {String(preferences.quietHoursStart).padStart(2, '0')}:00 to{' '}
                       {String(preferences.quietHoursEnd).padStart(2, '0')}:00 ({preferences.timezone || 'UTC'})
@@ -1412,7 +1405,7 @@ export default function SettingsPage() {
                     className="bg-primary text-on-primary font-ui-functional font-semibold text-xs px-5 py-2.5 rounded-lg shadow-sm hover:opacity-90 active:scale-98 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                   >
                     {isSavingPreferences && (
-                      <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                      <Icon className="text-sm animate-spin">progress_activity</Icon>
                     )}
                     <span>Save Preferences</span>
                   </button>
@@ -1428,7 +1421,7 @@ export default function SettingsPage() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-red-500">
-              <span className="material-symbols-outlined text-3xl">warning</span>
+              <Icon className="text-3xl">warning</Icon>
               <h3 className="font-serif text-lg font-bold text-on-surface">Sign Out from All Devices?</h3>
             </div>
             <p className="text-xs text-on-surface-variant/90 leading-relaxed">
@@ -1451,7 +1444,7 @@ export default function SettingsPage() {
                 className="text-xs font-semibold px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 {isSigningOutEverywhere && (
-                  <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                  <Icon className="text-sm animate-spin">progress_activity</Icon>
                 )}
                 <span>Confirm Sign Out All</span>
               </button>

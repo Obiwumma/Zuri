@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -93,7 +94,7 @@ function OpsResetPasswordForm() {
           <div className="bg-surface-container-high px-space-lg py-3 flex items-center justify-between border-b border-outline-variant/30">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-surface-container-highest text-primary">
-                <span className="material-symbols-outlined text-[14px]">vpn_key</span>
+                <Icon className="text-[14px]">vpn_key</Icon>
               </span>
               <span className="font-code-md text-code-md text-on-surface tracking-wide">SEC://TOKEN-VERIFICATION-PASS</span>
             </div>
@@ -115,14 +116,14 @@ function OpsResetPasswordForm() {
 
             {errorMessage && (
               <div className="rounded-lg bg-error-container/20 p-space-md flex items-start gap-3 border border-error-container/40">
-                <span className="material-symbols-outlined text-error mt-0.5 text-[18px]">warning</span>
+                <Icon className="text-error mt-0.5 text-[18px]">warning</Icon>
                 <span className="font-body-sm text-body-sm text-on-error-container">{errorMessage}</span>
               </div>
             )}
 
             {successMessage && (
               <div className="rounded-lg bg-secondary-container/20 p-space-md flex items-start gap-3 border border-secondary-container/40">
-                <span className="material-symbols-outlined text-secondary mt-0.5 text-[18px]">check_circle</span>
+                <Icon className="text-secondary mt-0.5 text-[18px]">check_circle</Icon>
                 <span className="font-body-sm text-body-sm text-on-surface">{successMessage}</span>
               </div>
             )}
@@ -182,9 +183,9 @@ function OpsResetPasswordForm() {
                   disabled={isLoading}
                   className="w-full h-10 px-4 rounded font-code-lg text-code-lg font-semibold tracking-wider uppercase flex items-center justify-center gap-2 bg-primary-container text-on-primary-container hover:bg-primary transition-all shadow-xs cursor-pointer disabled:opacity-60"
                 >
-                  <span className="material-symbols-outlined text-[18px]">
+                  <Icon className="text-[18px]">
                     {isLoading ? 'sync' : 'verified_user'}
-                  </span>
+                  </Icon>
                   <span>{isLoading ? 'Resetting Secret Key...' : 'Reset Operator Passphrase'}</span>
                 </button>
               </div>

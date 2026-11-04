@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
 
 export default function InstitutionForgotPasswordPage() {
@@ -60,7 +61,7 @@ export default function InstitutionForgotPasswordPage() {
           role="alert"
           className="mb-4 p-3 rounded text-sm bg-error-container/20 border border-error-container/40 text-on-surface flex items-start gap-2"
         >
-          <span className="material-symbols-outlined text-error text-[18px] shrink-0 mt-0.5">error</span>
+          <Icon className="text-error text-[18px] shrink-0 mt-0.5">error</Icon>
           <span>{errorMessage}</span>
         </div>
       )}
@@ -70,7 +71,7 @@ export default function InstitutionForgotPasswordPage() {
           role="status"
           className="mb-4 p-3 rounded text-sm bg-secondary-container/20 border border-secondary-container/40 text-on-surface flex items-start gap-2"
         >
-          <span className="material-symbols-outlined text-secondary text-[18px] shrink-0 mt-0.5">mark_email_read</span>
+          <Icon className="text-secondary text-[18px] shrink-0 mt-0.5">mark_email_read</Icon>
           <span>{message}</span>
         </div>
       )}

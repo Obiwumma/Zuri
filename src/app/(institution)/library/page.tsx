@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 
 interface LibraryCard {
@@ -187,7 +188,7 @@ export default function ContentLibraryPage() {
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
-                    <span className="material-symbols-outlined text-[18px]">{card.icon}</span>
+                    <Icon className="text-[18px]">{card.icon}</Icon>
                   </span>
                   <span className="font-mono text-xs px-2 py-0.5 rounded bg-primary-container text-on-primary-container font-semibold">
                     {card.moduleCode}
@@ -224,7 +225,7 @@ export default function ContentLibraryPage() {
                 onClick={() => alert(`Opening digital asset ${card.id}: ${card.title}`)}
                 type="button"
               >
-                Access Asset <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                Access Asset <Icon className="text-[14px]">arrow_forward</Icon>
               </button>
             </div>
           </article>

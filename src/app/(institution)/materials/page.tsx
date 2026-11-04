@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 
 interface ModuleMaterial {
@@ -196,9 +197,9 @@ export default function MaterialsPage() {
                   className="bg-surface-container-low p-4 rounded-lg border border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="material-symbols-outlined text-[20px] text-primary shrink-0 mt-0.5">
+                    <Icon className="text-[20px] text-primary shrink-0 mt-0.5">
                       description
-                    </span>
+                    </Icon>
                     <div>
                       <h3 className="font-serif text-sm font-bold text-on-surface leading-snug">{doc.title}</h3>
                       <div className="flex items-center gap-2 mt-1 text-xs text-on-surface-variant/80">
@@ -219,7 +220,7 @@ export default function MaterialsPage() {
                       type="button"
                     >
                       <span>Download</span>
-                      <span className="material-symbols-outlined text-[14px]">download</span>
+                      <Icon className="text-[14px]">download</Icon>
                     </button>
                   </div>
                 </div>

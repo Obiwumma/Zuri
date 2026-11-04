@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { KpiTile } from '@/components/ui/KpiTile';
 
 interface DecisionLogItem {
@@ -378,7 +379,7 @@ export default function OpsRoutingPage() {
               type="button"
               className="flex items-center gap-1.5 h-8 px-3 rounded bg-surface-container-low border border-outline-variant/40 text-on-surface-variant hover:text-on-surface hover:border-outline transition-colors font-label-sm text-label-sm cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[15px]">download</span>
+              <Icon className="text-[15px]">download</Icon>
               <span>Export JSONL</span>
             </button>
 
@@ -386,7 +387,7 @@ export default function OpsRoutingPage() {
               type="button"
               className="flex items-center gap-1.5 h-8 px-3 rounded bg-primary text-on-primary hover:bg-primary-container transition-colors font-label-sm text-label-sm font-bold uppercase tracking-wider cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[15px]">play_arrow</span>
+              <Icon className="text-[15px]">play_arrow</Icon>
               <span>Simulate Route</span>
             </button>
           </div>
@@ -456,7 +457,7 @@ export default function OpsRoutingPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-3 items-center">
           {/* Search */}
           <div className="xl:col-span-4 relative">
-            <span className="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-outline">search</span>
+            <Icon className="absolute left-2.5 top-2 text-[16px] text-outline">search</Icon>
             <input
               type="text"
               value={searchQuery}
@@ -473,10 +474,10 @@ export default function OpsRoutingPage() {
           <div className="xl:col-span-2 relative">
             <div className="flex items-center justify-between h-8 px-2.5 rounded bg-surface-container-low border border-outline-variant/40 text-on-surface text-body-sm font-body-sm cursor-pointer hover:border-outline">
               <div className="flex items-center gap-1.5 truncate">
-                <span className="material-symbols-outlined text-[16px] text-outline">calendar_today</span>
+                <Icon className="text-[16px] text-outline">calendar_today</Icon>
                 <span className="truncate">14:30 – 15:30 UTC</span>
               </div>
-              <span className="material-symbols-outlined text-[14px] text-outline">expand_more</span>
+              <Icon className="text-[14px] text-outline">expand_more</Icon>
             </div>
           </div>
 
@@ -572,7 +573,7 @@ export default function OpsRoutingPage() {
                   }`}
                 >
                   <div className="col-span-2 flex items-center gap-1 font-code-md text-code-md font-semibold text-primary">
-                    <span className="material-symbols-outlined text-[13px] text-outline">terminal</span>
+                    <Icon className="text-[13px] text-outline">terminal</Icon>
                     <span>{row.reqId}</span>
                   </div>
                   <div className="col-span-1 font-code-md text-code-md text-on-surface-variant">{row.time}</div>
@@ -645,7 +646,7 @@ export default function OpsRoutingPage() {
                 title="Copy JSON Log"
                 className="p-1 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                <Icon className="text-[16px]">content_copy</Icon>
               </button>
             </div>
           </div>

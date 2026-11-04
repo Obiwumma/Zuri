@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { KpiTile } from '@/components/ui/KpiTile';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { FilterBar } from '@/components/ui/FilterBar';
@@ -141,7 +142,7 @@ export default function InterventionAnalyticsPage() {
       header: 'Trend',
       accessor: (row) => (
         <div className={`flex items-center gap-1 text-[13px] ${row.isTrendUp ? 'text-secondary font-semibold' : 'text-on-surface-variant'}`}>
-          <span className="material-symbols-outlined text-[15px]">{row.isTrendUp ? 'arrow_outward' : 'trending_flat'}</span>
+          <Icon className="text-[15px]">{row.isTrendUp ? 'arrow_outward' : 'trending_flat'}</Icon>
           {row.trend}
         </div>
       ),
@@ -152,7 +153,7 @@ export default function InterventionAnalyticsPage() {
       accessor: () => (
         <button className="text-secondary hover:text-on-secondary-container font-semibold text-[13px] inline-flex items-center gap-1 transition-transform hover:translate-x-0.5" type="button">
           <span>View Cohort Dossier</span>
-          <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+          <Icon className="text-[14px]">arrow_forward</Icon>
         </button>
       ),
     },
@@ -173,11 +174,11 @@ export default function InterventionAnalyticsPage() {
             </div>
             <div className="flex items-center gap-space-md self-start md:self-auto">
               <a className="font-ui-functional text-ui-functional text-secondary hover:text-on-secondary-container transition-colors flex items-center gap-1 underline underline-offset-4 decoration-outline-variant" href="#">
-                <span className="material-symbols-outlined text-[16px]">tune</span>
+                <Icon className="text-[16px]">tune</Icon>
                 Intervention Protocol Settings
               </a>
               <button className="px-space-md py-2 rounded-lg bg-surface-container-lowest text-primary hover:bg-surface-container font-ui-functional text-ui-functional shadow-sm flex items-center gap-space-xs transition-colors" type="button">
-                <span className="material-symbols-outlined text-[18px]">download_for_offline</span>
+                <Icon className="text-[18px]">download_for_offline</Icon>
                 <span>Export Senate Analytics Dossier</span>
               </button>
             </div>
@@ -195,7 +196,7 @@ export default function InterventionAnalyticsPage() {
                     <option>Trinity Term (Archived 2024)</option>
                     <option>All Academic Year 2024–25</option>
                   </select>
-                  <span className="material-symbols-outlined absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</span>
+                  <Icon className="absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</Icon>
                 </div>
               </div>
               <div className="flex flex-col">
@@ -207,7 +208,7 @@ export default function InterventionAnalyticsPage() {
                     <option>Postgraduate Research Seminars</option>
                     <option>Clinical & Laboratory Courses</option>
                   </select>
-                  <span className="material-symbols-outlined absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</span>
+                  <Icon className="absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</Icon>
                 </div>
               </div>
               <div className="flex flex-col">
@@ -220,7 +221,7 @@ export default function InterventionAnalyticsPage() {
                     <option>Medical Sciences Division</option>
                     <option>Social Sciences Division</option>
                   </select>
-                  <span className="material-symbols-outlined absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</span>
+                  <Icon className="absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</Icon>
                 </div>
               </div>
               <div className="flex flex-col">
@@ -233,7 +234,7 @@ export default function InterventionAnalyticsPage() {
                     <option>Exam & Collections Prep</option>
                     <option>Assignment Reminder & Scaffold</option>
                   </select>
-                  <span className="material-symbols-outlined absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</span>
+                  <Icon className="absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</Icon>
                 </div>
               </div>
               <div className="flex flex-col">
@@ -245,7 +246,7 @@ export default function InterventionAnalyticsPage() {
                     placeholder="Search course code..."
                     type="text"
                   />
-                  <span className="material-symbols-outlined absolute left-2.5 top-2.5 text-on-surface-variant text-[18px]">search</span>
+                  <Icon className="absolute left-2.5 top-2.5 text-on-surface-variant text-[18px]">search</Icon>
                 </div>
               </div>
             </div>
@@ -258,11 +259,8 @@ export default function InterventionAnalyticsPage() {
                   <span key={filter} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container font-ui-functional text-[12px] text-on-surface">
                     {filter}
                     <button
-                      className="material-symbols-outlined text-[14px] text-on-surface-variant hover:text-error"
-                      onClick={() => removeFilter(filter)}
-                      type="button"
-                    >
-                      close
+                      className="text-on-surface-variant hover:text-error cursor-pointer flex items-center justify-center">
+                      <Icon size={14}>close</Icon>
                     </button>
                   </span>
                 ))}
@@ -376,7 +374,7 @@ export default function InterventionAnalyticsPage() {
                   </div>
                   <div className="mt-space-md p-space-sm bg-surface-container-low rounded-lg flex items-center justify-between">
                     <div className="flex items-center gap-space-xs text-on-surface-variant font-ui-functional text-[13px]">
-                      <span className="material-symbols-outlined text-[16px] text-secondary">info</span>
+                      <Icon className="text-[16px] text-secondary">info</Icon>
                       <span>Midterm diagnostic period in Week 6 represented the highest surge in support requests.</span>
                     </div>
                     <span className="font-label-caps text-label-caps text-secondary font-semibold">91.4% Tutorial Follow-through</span>
@@ -430,7 +428,7 @@ export default function InterventionAnalyticsPage() {
                     </div>
                   </div>
                   <div className="mt-space-lg p-space-md bg-secondary-fixed/40 rounded-lg flex items-start gap-space-sm">
-                    <span className="material-symbols-outlined text-secondary text-[22px] mt-0.5">school</span>
+                    <Icon className="text-secondary text-[22px] mt-0.5">school</Icon>
                     <div className="flex flex-col">
                       <span className="font-label-caps text-label-caps uppercase text-secondary font-bold">Pedagogical Correlation Note</span>
                       <p className="font-body-md text-[13px] text-on-surface leading-snug mt-0.5">
@@ -457,7 +455,7 @@ export default function InterventionAnalyticsPage() {
           {analyticsState === 'empty' && (
             <div className="flex flex-col items-center justify-center py-20 px-space-md bg-surface-container-lowest rounded-xl shadow-sm text-center" id="view-empty">
               <div className="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-space-md text-secondary">
-                <span className="material-symbols-outlined text-[36px]">history_edu</span>
+                <Icon className="text-[36px]">history_edu</Icon>
               </div>
               <span className="font-label-caps text-label-caps uppercase text-secondary">Awaiting Michaelmas Term Onset</span>
               <h2 className="font-headline-md text-headline-md font-serif text-primary mt-1 max-w-lg">No Interventions Recorded for Selected Term</h2>
@@ -479,7 +477,7 @@ export default function InterventionAnalyticsPage() {
           {analyticsState === 'filtered-empty' && (
             <div className="flex flex-col items-center justify-center py-20 px-space-md bg-surface-container-lowest rounded-xl shadow-sm text-center" id="view-filtered-empty">
               <div className="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-space-md text-outline">
-                <span className="material-symbols-outlined text-[36px]">filter_alt_off</span>
+                <Icon className="text-[36px]">filter_alt_off</Icon>
               </div>
               <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">Telemetry Query: 0 Records</span>
               <h2 className="font-headline-md text-headline-md font-serif text-primary mt-1 max-w-lg">No interventions match your active filter criteria</h2>
@@ -488,7 +486,7 @@ export default function InterventionAnalyticsPage() {
               </p>
               <div className="mt-space-lg">
                 <button className="px-space-md py-2 rounded-lg bg-primary text-on-primary font-ui-functional text-ui-functional hover:bg-primary-container transition-colors inline-flex items-center gap-1.5" onClick={resetFilters} type="button">
-                  <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                  <Icon className="text-[18px]">restart_alt</Icon>
                   Reset all filters to defaults
                 </button>
               </div>

@@ -20,7 +20,7 @@ export default async function OpsLayout({
     pathname === '/ops/reset-password' ||
     pathname === '/ops/change-password'
   ) {
-    return <div className="dark min-h-screen bg-surface font-body-md text-on-surface">{children}</div>;
+    return <div data-theme="ops" className="dark min-h-dvh bg-ops-canvas text-ops-text font-body">{children}</div>;
   }
 
   // Derive authenticated identity from session on the server
@@ -37,14 +37,16 @@ export default async function OpsLayout({
   const displayEmail = session?.email || 'operator@lexi.internal';
 
   return (
-    <OpsLayoutClient
-      user={{
-        name: displayName,
-        email: displayEmail,
-        role: displayRole,
-      }}
-    >
-      {children}
-    </OpsLayoutClient>
+    <div data-theme="ops" className="dark min-h-dvh bg-ops-canvas text-ops-text">
+      <OpsLayoutClient
+        user={{
+          name: displayName,
+          email: displayEmail,
+          role: displayRole,
+        }}
+      >
+        {children}
+      </OpsLayoutClient>
+    </div>
   );
 }

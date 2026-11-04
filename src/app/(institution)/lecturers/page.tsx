@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 
 interface FacultyProfile {
@@ -252,7 +253,7 @@ export default function LecturersPage() {
                 onClick={() => alert(`Opening profile for ${f.name}`)}
                 type="button"
               >
-                Profile <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                Profile <Icon className="text-[14px]">arrow_forward</Icon>
               </button>
             </div>
           </article>

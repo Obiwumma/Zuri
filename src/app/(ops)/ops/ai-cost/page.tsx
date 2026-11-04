@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { KpiTile } from '@/components/ui/KpiTile';
 import { DataTable, Column } from '@/components/ui/DataTable';
 
@@ -268,7 +269,7 @@ export default function OpsAiCostPage() {
               type="button"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded font-code-md text-code-md transition-colors cursor-pointer border border-outline-variant/30"
             >
-              <span className="material-symbols-outlined text-[16px] text-outline">file_download</span>
+              <Icon className="text-[16px] text-outline">file_download</Icon>
               <span>Ledger (CSV/JSON)</span>
             </button>
           </div>
@@ -277,7 +278,7 @@ export default function OpsAiCostPage() {
         {/* Global Zero Inference Banner */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 bg-surface-container-high rounded mt-1 border border-outline-variant/30">
           <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-primary text-[18px]">verified</span>
+            <Icon className="text-primary text-[18px]">verified</Icon>
             <span className="font-code-md text-code-md text-on-surface font-medium">Global Zero-Inference Interception Rate:</span>
             <span className="font-code-md text-code-md font-bold text-primary">68.4%</span>
             <span className="text-on-surface-variant font-body-sm text-body-sm">(Tiers 0–1 bypass frontier LLMs completely)</span>
@@ -346,7 +347,7 @@ export default function OpsAiCostPage() {
       <section className="px-6 pb-6 bg-surface-container-lowest flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-primary text-[20px]">alt_route</span>
+            <Icon className="text-primary text-[20px]">alt_route</Icon>
             <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">
               Routing Efficiency &amp; Tiered Dispatch Telemetry
             </h2>
@@ -411,7 +412,7 @@ export default function OpsAiCostPage() {
 
             <div className="mt-3 p-2.5 bg-surface-container rounded flex items-center justify-between border border-outline-variant/30">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-[18px]">query_stats</span>
+                <Icon className="text-primary text-[18px]">query_stats</Icon>
                 <span className="font-body-sm text-body-sm text-on-surface">Efficiency Invariant:</span>
               </div>
               <span className="font-code-md text-code-md text-primary font-semibold">85.2% Traffic ≤ Tier 2 (Saved +$782.40/day)</span>
@@ -543,7 +544,7 @@ export default function OpsAiCostPage() {
       <section className="p-6 bg-surface-container-lowest">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-primary text-[20px]">layers</span>
+            <Icon className="text-primary text-[20px]">layers</Icon>
             <div>
               <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">
                 Semantic &amp; Pipeline Cache Architecture
@@ -703,7 +704,7 @@ export default function OpsAiCostPage() {
             <div>
               <div className="px-4 py-3 bg-surface-container flex items-center justify-between border-b border-outline-variant/30">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-outline text-[18px]">security_update_warning</span>
+                  <Icon className="text-outline text-[18px]">security_update_warning</Icon>
                   <span className="font-label-md text-label-md font-semibold text-on-surface uppercase tracking-wider">
                     Fallback &amp; Resilience Stream
                   </span>

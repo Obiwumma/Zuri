@@ -1,22 +1,77 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import {
+  TextField,
+  PasswordField,
+  Checkbox,
+  Button,
+  Alert,
+} from '@/components/ui';
+import { SlidersHorizontal } from 'lucide-react';
 import { canAccessInstitution, canAccessOps } from '@/lib/auth/roles';
 
-export default function InstitutionLoginPage() {
+export type HarnessState =
+  | 'default'
+  | 'submitting'
+  | 'loading'
+  | 'invalid'
+  | 'locked'
+  | 'reset';
+
+function InstitutionLoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Harness states bar enabled when ?states=1 is in URL
+  const showHarness = searchParams.get('states') === '1';
+
+  const [harnessState, setHarnessState] = useState<HarnessState>('default');
+  const [email, setEmail] = useState<string>('admin@oxford.ac.uk');
+  const [password, setPassword] = useState<string>('');
+  const [rememberSession, setRememberSession] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number>(60);
+
+  // Live countdown timer for locked state
+  useEffect(() => {
+    if (harnessState !== 'locked') return;
+
+    if (countdown <= 0) {
+      setHarnessState('default');
+      setErrorMessage(null);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setHarnessState('default');
+          setErrorMessage(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [harnessState, countdown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
+    if (
+      harnessState === 'locked' ||
+      harnessState === 'submitting' ||
+      harnessState === 'loading'
+    ) {
+      return;
+    }
 
-    setIsLoading(true);
+    setHarnessState('submitting');
     setErrorMessage(null);
 
     try {
@@ -33,21 +88,30 @@ export default function InstitutionLoginPage() {
 
       if (!res.ok) {
         if (res.status === 401) {
-          setErrorMessage('Invalid email or password');
+          setHarnessState('invalid');
+          setErrorMessage('Email or password is incorrect. Check both and try again.');
         } else if (res.status === 429) {
-          setErrorMessage(data?.message || 'Too many login attempts. Please wait before trying again.');
+          setHarnessState('locked');
+          setCountdown(60);
+          setErrorMessage(data?.message || 'Too many sign-in attempts. Try again in 60s.');
         } else if (res.status === 503) {
-          setErrorMessage('Authentication service is temporarily unavailable. Please retry shortly.');
+          setHarnessState('invalid');
+          setErrorMessage('Service is temporarily unavailable. Please try again shortly.');
         } else {
-          setErrorMessage(data?.message || 'An error occurred during authentication. Please try again.');
+          setHarnessState('invalid');
+          setErrorMessage('Email or password is incorrect. Check both and try again.');
         }
         return;
       }
 
       // Route by forced password flag or user role
       if (data?.mustChangePassword) {
-        window.location.href = '/change-password';
-      } else if (canAccessInstitution(data?.role)) {
+        setHarnessState('reset');
+        router.push('/change-password');
+        return;
+      }
+
+      if (canAccessInstitution(data?.role)) {
         window.location.href = '/dashboard';
       } else if (canAccessOps(data?.role)) {
         window.location.href = '/ops/health';
@@ -55,75 +119,208 @@ export default function InstitutionLoginPage() {
         window.location.href = '/dashboard';
       }
     } catch {
-      setErrorMessage('Network connection failure. Please check your connection and retry.');
-    } finally {
-      setIsLoading(false);
+      setHarnessState('invalid');
+      setErrorMessage('Unable to connect. Check your connection and try again.');
     }
   };
 
-  return (
-    <div className="max-w-md mx-auto my-12 p-6 bg-surface-container rounded-lg border border-outline-variant shadow-sm">
-      <h1 className="text-xl font-bold text-primary mb-4">Institution Login</h1>
-      <p className="text-sm text-on-surface-variant mb-6">
-        Sign in to access your institutional console.
-      </p>
+  const isSubmitting = harnessState === 'submitting' || harnessState === 'loading';
+  const isLocked = harnessState === 'locked';
+  const isFormDisabled = isSubmitting || isLocked;
 
-      {errorMessage && (
-        <div
-          role="alert"
-          className="mb-4 p-3 rounded text-sm bg-error-container/20 border border-error-container/40 text-on-surface flex items-start gap-2"
-        >
-          <span className="material-symbols-outlined text-error text-[18px] shrink-0 mt-0.5">error</span>
-          <span>{errorMessage}</span>
-        </div>
+  return (
+    <AuthLayout editorialStatement="See what is happening across your academic year.">
+      {/* Dev State Simulation Harness Bar (only when ?states=1) */}
+      {showHarness && (
+        <aside aria-label="Development test harness" className="w-full mb-6">
+          <div className="bg-surface-container-high border border-outline-variant rounded-default p-2 flex flex-wrap items-center justify-between gap-2 text-caption">
+            <span className="text-on-surface-variant font-medium flex items-center gap-1.5">
+              <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
+              States:
+            </span>
+            <div className="flex items-center gap-1 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  setHarnessState('default');
+                  setErrorMessage(null);
+                }}
+                className={`px-2 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  harnessState === 'default'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Default
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setHarnessState('submitting');
+                  setErrorMessage(null);
+                }}
+                className={`px-2 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  isSubmitting
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Submitting
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setHarnessState('invalid');
+                  setErrorMessage('Email or password is incorrect. Check both and try again.');
+                }}
+                className={`px-2 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  harnessState === 'invalid'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Invalid
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setHarnessState('locked');
+                  setCountdown(60);
+                }}
+                className={`px-2 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  isLocked
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Locked
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setHarnessState('reset');
+                  setErrorMessage(null);
+                }}
+                className={`px-2 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  harnessState === 'reset'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Password change
+              </button>
+            </div>
+          </div>
+        </aside>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant" htmlFor="inst-email">
-            Email Address
-          </label>
-          <input
-            id="inst-email"
-            type="email"
-            required
-            disabled={isLoading}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@oxford.ac.uk"
-            className="w-full px-3 py-2 bg-surface-container-lowest text-on-surface text-sm rounded border border-outline-variant focus:outline-none focus:border-primary disabled:opacity-50"
+      {/* Heading */}
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-on-surface tracking-tight">
+          Sign in to your account
+        </h1>
+        <p className="text-body-sm text-on-surface-variant mt-1.5">
+          Enter your institutional credentials to continue.
+        </p>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <TextField
+          label="Work email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@university.edu"
+          autoComplete="username"
+          disabled={isFormDisabled}
+          required
+        />
+
+        <PasswordField
+          label="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••••"
+          autoComplete="current-password"
+          disabled={isFormDisabled}
+          required
+        />
+
+        <div className="flex items-center justify-between gap-4">
+          <Checkbox
+            id="remember-session"
+            label={
+              <span className="text-caption text-on-surface-variant">
+                Keep me signed in for 12 hours
+              </span>
+            }
+            checked={rememberSession}
+            onChange={(e) => setRememberSession(e.target.checked)}
+            disabled={isFormDisabled}
           />
+          <Link
+            href="/forgot-password"
+            className="text-caption font-medium text-primary hover:underline shrink-0 outline-none focus-visible:focus-ring rounded-xs"
+          >
+            Forgot password?
+          </Link>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant" htmlFor="inst-password">
-              Password
-            </label>
-            <Link href="/forgot-password" className="text-xs text-primary hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-          <input
-            id="inst-password"
-            type="password"
-            required
-            disabled={isLoading}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••••••"
-            className="w-full px-3 py-2 bg-surface-container-lowest text-on-surface text-sm rounded border border-outline-variant focus:outline-none focus:border-primary disabled:opacity-50"
+        {/* State Banners / Error notifications */}
+        {harnessState === 'invalid' && (
+          <Alert
+            variant="error"
+            description={
+              errorMessage || 'Email or password is incorrect. Check both and try again.'
+            }
           />
-        </div>
+        )}
 
-        <button
+        {isLocked && (
+          <Alert
+            variant="error"
+            title="Account temporarily locked"
+            description={`Too many sign-in attempts. Try again in ${countdown}s.`}
+          />
+        )}
+
+        {harnessState === 'reset' && (
+          <Alert
+            variant="info"
+            title="First-time sign-in or password reset required"
+            description={
+              <span>
+                You must change your password before continuing.{' '}
+                <Link
+                  href="/change-password"
+                  className="text-primary font-medium underline hover:text-primary-container"
+                >
+                  Change password now
+                </Link>
+              </span>
+            }
+          />
+        )}
+
+        <Button
           type="submit"
-          disabled={isLoading}
-          className="inline-block w-full text-center py-2 px-4 bg-primary text-on-primary rounded font-medium text-sm transition-opacity disabled:opacity-60 cursor-pointer"
+          variant="primary"
+          className="w-full h-11"
+          isLoading={isSubmitting}
+          disabled={isFormDisabled}
         >
-          {isLoading ? 'Signing In...' : 'Sign In'}
-        </button>
+          Sign in
+        </Button>
       </form>
-    </div>
+    </AuthLayout>
+  );
+}
+
+export default function InstitutionLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-surface" />}>
+      <InstitutionLoginForm />
+    </Suspense>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
 
 export default function AnalyticsPage() {
@@ -22,12 +23,12 @@ export default function AnalyticsPage() {
             className="bg-surface-container-lowest border border-outline-variant/25 rounded-xl p-5 hover:border-primary/50 transition-all flex flex-col justify-between gap-4"
           >
             <div>
-              <span className="material-symbols-outlined text-[24px] text-secondary mb-2">flag</span>
+              <Icon className="text-[24px] text-secondary mb-2">flag</Icon>
               <h2 className="font-serif text-lg font-bold text-primary">Intervention Analytics</h2>
               <p className="text-xs text-on-surface-variant/80 mt-1">Monitor tutorial alerts and early-warning student reviews.</p>
             </div>
             <span className="text-xs font-semibold text-primary flex items-center gap-1">
-              View Dashboard <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              View Dashboard <Icon className="text-[14px]">arrow_forward</Icon>
             </span>
           </Link>
 
@@ -36,12 +37,12 @@ export default function AnalyticsPage() {
             className="bg-surface-container-lowest border border-outline-variant/25 rounded-xl p-5 hover:border-primary/50 transition-all flex flex-col justify-between gap-4"
           >
             <div>
-              <span className="material-symbols-outlined text-[24px] text-secondary mb-2">psychology</span>
+              <Icon className="text-[24px] text-secondary mb-2">psychology</Icon>
               <h2 className="font-serif text-lg font-bold text-primary">AI Usage Monitoring</h2>
               <p className="text-xs text-on-surface-variant/80 mt-1">Track Socratic AI query volume across undergraduate & PG cohorts.</p>
             </div>
             <span className="text-xs font-semibold text-primary flex items-center gap-1">
-              View Dashboard <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              View Dashboard <Icon className="text-[14px]">arrow_forward</Icon>
             </span>
           </Link>
 
@@ -50,12 +51,12 @@ export default function AnalyticsPage() {
             className="bg-surface-container-lowest border border-outline-variant/25 rounded-xl p-5 hover:border-primary/50 transition-all flex flex-col justify-between gap-4"
           >
             <div>
-              <span className="material-symbols-outlined text-[24px] text-secondary mb-2">fact_check</span>
+              <Icon className="text-[24px] text-secondary mb-2">fact_check</Icon>
               <h2 className="font-serif text-lg font-bold text-primary">Quiz Performance</h2>
               <p className="text-xs text-on-surface-variant/80 mt-1">Assessment outcomes, pass/fail rates, and formative mastery.</p>
             </div>
             <span className="text-xs font-semibold text-primary flex items-center gap-1">
-              View Dashboard <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              View Dashboard <Icon className="text-[14px]">arrow_forward</Icon>
             </span>
           </Link>
         </div>

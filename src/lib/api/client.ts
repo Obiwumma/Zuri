@@ -11,71 +11,10 @@
  * - Refresh logic is strictly external (not implemented here).
  */
 
-import { cookies } from 'next/headers';
 import { getApiBaseUrl } from './config';
 import type { ApiErrorEnvelope } from './types';
-
-// ============================================================================
-// Typed Error Classes
-// ============================================================================
-
-export class ApiError extends Error {
-  public readonly status: number;
-  public readonly code?: string;
-  public readonly errorType?: string;
-  public readonly userId?: string;
-  public readonly responseBody?: unknown;
-
-  constructor(
-    status: number,
-    message: string,
-    options?: {
-      code?: string;
-      errorType?: string;
-      userId?: string;
-      responseBody?: unknown;
-    }
-  ) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.code = options?.code;
-    this.errorType = options?.errorType;
-    this.userId = options?.userId;
-    this.responseBody = options?.responseBody;
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
-
-export class RateLimitedError extends ApiError {
-  /**
-   * Unix epoch timestamp in seconds when the rate limit window resets.
-   */
-  public readonly resetTime: number | null;
-  public readonly resetDate: Date | null;
-
-  constructor(message: string, resetTime: number | null, responseBody?: unknown) {
-    super(429, message, {
-      code: 'RATE_LIMITED',
-      responseBody,
-    });
-    this.name = 'RateLimitedError';
-    this.resetTime = resetTime;
-    this.resetDate = resetTime ? new Date(resetTime * 1000) : null;
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
-
-export class ServiceUnavailableError extends ApiError {
-  constructor(message: string, responseBody?: unknown) {
-    super(503, message, {
-      code: 'CIRCUIT_BREAKER_OPEN',
-      responseBody,
-    });
-    this.name = 'ServiceUnavailableError';
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
+export * from './errors';
+import { ApiError, RateLimitedError, ServiceUnavailableError } from './errors';
 
 // ============================================================================
 // Cookie Extraction Helper
@@ -86,7 +25,11 @@ export class ServiceUnavailableError extends ApiError {
  * Checks 'access_token' and fallback 'zuri_access_token'.
  */
 async function getAccessTokenFromCookie(): Promise<string | undefined> {
+  if (typeof window !== 'undefined') {
+    return undefined;
+  }
   try {
+    const { cookies } = await import('next/headers');
     const cookieStore = await cookies();
     const token =
       cookieStore.get('access_token')?.value ||

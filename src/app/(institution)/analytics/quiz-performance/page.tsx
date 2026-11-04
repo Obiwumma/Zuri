@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { DevStateLens } from '@/components/ui/DevStateLens';
 import { KpiTile } from '@/components/ui/KpiTile';
 import { DataTable, Column } from '@/components/ui/DataTable';
@@ -231,7 +232,7 @@ export default function QuizPerformancePage() {
         if (row.trendType === 'warning') {
           return (
             <span className="inline-flex items-center gap-1 font-label-caps text-[11px] px-2 py-0.5 rounded bg-error-container/50 text-error uppercase">
-              <span className="material-symbols-outlined text-[12px]">warning</span>
+              <Icon className="text-[12px]">warning</Icon>
               {row.trend}
             </span>
           );
@@ -239,7 +240,7 @@ export default function QuizPerformancePage() {
         if (row.trendType === 'positive') {
           return (
             <span className="inline-flex items-center gap-1 font-label-caps text-[11px] px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed uppercase">
-              <span className="material-symbols-outlined text-[12px]">trending_up</span>
+              <Icon className="text-[12px]">trending_up</Icon>
               {row.trend}
             </span>
           );
@@ -286,14 +287,14 @@ export default function QuizPerformancePage() {
               className="px-space-md py-2 rounded-lg font-ui-functional text-ui-functional text-primary bg-surface-container hover:bg-surface-container-high transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
               type="button"
             >
-              <span className="material-symbols-outlined text-[18px]">rule_folder</span>
+              <Icon className="text-[18px]">rule_folder</Icon>
               <span>Assessment Benchmarking Standards</span>
             </button>
             <button
               className="px-space-md py-2 rounded-lg font-ui-functional text-ui-functional text-on-primary bg-primary hover:bg-primary-container transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
               type="button"
             >
-              <span className="material-symbols-outlined text-[18px]">download</span>
+              <Icon className="text-[18px]">download</Icon>
               <span>Export Senate Assessment Dossier</span>
             </button>
           </div>
@@ -348,7 +349,7 @@ export default function QuizPerformancePage() {
             <div className="flex flex-col gap-1">
               <label className="font-label-caps text-label-caps uppercase text-on-surface-variant">Registry Search</label>
               <div className="relative w-full">
-                <span className="material-symbols-outlined absolute left-2.5 top-2 text-[18px] text-outline">search</span>
+                <Icon className="absolute left-2.5 top-2 text-[18px] text-outline">search</Icon>
                 <input
                   className="w-full pl-8 pr-space-sm py-1.5 bg-surface-container-low text-on-surface font-ui-functional text-ui-functional rounded-DEFAULT outline-none focus:bg-surface-container"
                   placeholder="Search topic or code..."
@@ -369,11 +370,8 @@ export default function QuizPerformancePage() {
                   {filter}
                   <button
                     aria-label={`Remove filter ${filter}`}
-                    className="material-symbols-outlined text-[14px] hover:text-secondary cursor-pointer"
-                    onClick={() => removeFilter(filter)}
-                    type="button"
-                  >
-                    close
+                    className="hover:text-secondary cursor-pointer flex items-center justify-center">
+                    <Icon size={14}>close</Icon>
                   </button>
                 </span>
               ))}
@@ -401,7 +399,7 @@ export default function QuizPerformancePage() {
                 subtext={
                   <div className="flex items-center justify-between font-ui-functional text-[13px] text-on-surface-variant">
                     <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px] text-primary-container">trending_up</span>
+                      <Icon className="text-[16px] text-primary-container">trending_up</Icon>
                       +2.8% vs Michaelmas 2023
                     </span>
                     <span className="font-label-caps text-[11px] text-outline uppercase">38 Colleges</span>
@@ -417,7 +415,7 @@ export default function QuizPerformancePage() {
                 subtext={
                   <div className="flex items-center justify-between font-ui-functional text-[13px] text-on-surface-variant">
                     <span className="text-secondary flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px]">trending_down</span>
+                      <Icon className="text-[16px]">trending_down</Icon>
                       -1.4% failure reduction
                     </span>
                     <span className="font-label-caps text-[11px] text-outline uppercase">Term-Over-Term</span>
@@ -448,7 +446,7 @@ export default function QuizPerformancePage() {
                 subtext={
                   <div className="flex items-center justify-between font-ui-functional text-[13px] text-on-surface-variant">
                     <span className="text-secondary flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[15px]">campaign</span>
+                      <Icon className="text-[15px]">campaign</Icon>
                       Tutorial triage notified
                     </span>
                     <span className="font-label-caps text-[11px] text-outline uppercase">3 Faculties</span>
@@ -559,7 +557,7 @@ export default function QuizPerformancePage() {
               {/* Institutional Summary Footer */}
               <div className="mt-space-md p-space-md bg-surface-container rounded-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-space-sm">
                 <div className="flex items-center gap-space-sm">
-                  <span className="material-symbols-outlined text-primary text-[22px]">school</span>
+                  <Icon className="text-primary text-[22px]">school</Icon>
                   <div>
                     <span className="font-ui-functional text-ui-functional font-semibold text-primary">Collegiate Mastery Index:</span>
                     <span className="font-ui-functional text-ui-functional text-on-surface ml-1">
@@ -702,7 +700,7 @@ export default function QuizPerformancePage() {
           <div className="flex flex-col w-full">
             <div className="bg-paper-white p-16 rounded-lg shadow-sm text-center flex flex-col items-center justify-center max-w-2xl mx-auto my-12">
               <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-primary mb-space-md">
-                <span className="material-symbols-outlined text-[32px]">edit_calendar</span>
+                <Icon className="text-[32px]">edit_calendar</Icon>
               </div>
               <span className="font-label-caps text-label-caps uppercase text-secondary tracking-wider mb-1">Pre-Assessment Period</span>
               <h3 className="font-headline-md text-headline-md text-ink-black mb-2">No Formative Data Logged for Hilary Term</h3>
@@ -733,7 +731,7 @@ export default function QuizPerformancePage() {
           <div className="flex flex-col w-full">
             <div className="bg-paper-white p-16 rounded-lg shadow-sm text-center flex flex-col items-center justify-center max-w-2xl mx-auto my-12">
               <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-secondary mb-space-md">
-                <span className="material-symbols-outlined text-[32px]">filter_alt_off</span>
+                <Icon className="text-[32px]">filter_alt_off</Icon>
               </div>
               <span className="font-label-caps text-label-caps uppercase text-secondary tracking-wider mb-1">Query Mismatch</span>
               <h3 className="font-headline-md text-headline-md text-ink-black mb-2">Zero Matching Assessment Cohorts</h3>

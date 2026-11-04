@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { KpiTile } from '@/components/ui/KpiTile';
 
 interface LogEntry {
@@ -321,7 +322,7 @@ export default function OpsLogsPage() {
               <span className="font-label-sm text-label-sm text-primary font-medium">4,820 events/sec</span>
             </div>
             <div className="hidden xl:flex items-center gap-1.5 px-2 py-0.5 bg-surface-container rounded text-outline">
-              <span className="material-symbols-outlined text-[14px]">memory</span>
+              <Icon className="text-[14px]">memory</Icon>
               <span className="font-label-sm text-label-sm">Ring Buffer: 50,000 / 50,000 intact</span>
             </div>
           </div>
@@ -338,9 +339,9 @@ export default function OpsLogsPage() {
             }}
             className="h-8 px-2.5 bg-surface-container hover:bg-surface-container-high rounded text-on-surface flex items-center gap-1.5 font-label-md text-label-md transition-colors cursor-pointer"
           >
-            <span className={`material-symbols-outlined text-[16px] ${isLiveTailing ? 'text-primary' : 'text-outline'}`}>
+            <Icon className={`text-[16px] ${isLiveTailing ? 'text-primary' : 'text-outline'}`}>
               {isLiveTailing ? 'pause' : 'play_arrow'}
-            </span>
+            </Icon>
             <span>{isLiveTailing ? 'PAUSE TAIL' : 'RESUME TAIL'}</span>
           </button>
 
@@ -363,7 +364,7 @@ export default function OpsLogsPage() {
               className="px-2 py-1 text-label-sm font-label-sm rounded hover:text-on-surface transition-colors flex items-center gap-1 cursor-pointer"
             >
               <span>UTC</span>
-              <span className="material-symbols-outlined text-[12px]">calendar_today</span>
+              <Icon className="text-[12px]">calendar_today</Icon>
             </button>
           </div>
 
@@ -375,7 +376,7 @@ export default function OpsLogsPage() {
               className="h-8 px-2.5 bg-surface-container hover:bg-surface-container-high rounded text-on-surface flex items-center gap-1 font-label-md text-label-md transition-colors cursor-pointer"
               title="Export as NDJSON"
             >
-              <span className="material-symbols-outlined text-[15px] text-outline">download</span>
+              <Icon className="text-[15px] text-outline">download</Icon>
               <span>NDJSON</span>
             </button>
             <button
@@ -392,7 +393,7 @@ export default function OpsLogsPage() {
               className="h-8 px-2 bg-surface-container hover:bg-surface-container-high rounded text-on-surface flex items-center gap-1 font-label-md text-label-md transition-colors cursor-pointer"
               title="Copy LogQL Expression"
             >
-              <span className="material-symbols-outlined text-[14px] text-outline">terminal</span>
+              <Icon className="text-[14px] text-outline">terminal</Icon>
               <span>LogQL</span>
             </button>
           </div>
@@ -454,7 +455,7 @@ export default function OpsLogsPage() {
       <div className="w-full bg-surface-container-highest px-6 py-1.5 flex items-center justify-between gap-2 overflow-x-auto border-b border-outline-variant/20">
         <div className="flex items-center gap-2">
           <span className="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider flex items-center gap-1">
-            <span className="material-symbols-outlined text-[13px]">tune</span>
+            <Icon className="text-[13px]">tune</Icon>
             QA VIEW STATES:
           </span>
           <div className="flex items-center gap-1">
@@ -490,9 +491,9 @@ export default function OpsLogsPage() {
       <div className="w-full bg-surface-container-low px-6 py-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 border-b border-outline-variant/30">
         {/* Freeform Query Input */}
         <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px]">
+          <Icon className="absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px]">
             search
-          </span>
+          </Icon>
           <input
             type="text"
             value={searchQuery}
@@ -511,7 +512,7 @@ export default function OpsLogsPage() {
             className="h-8 px-2.5 bg-surface rounded flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant"
             title="Current Query Time Window"
           >
-            <span className="material-symbols-outlined text-[14px] text-outline">schedule</span>
+            <Icon className="text-[14px] text-outline">schedule</Icon>
             <span className="font-code-md text-code-md text-on-surface">14:30:00 - 15:30:00 UTC</span>
           </div>
 
@@ -526,9 +527,9 @@ export default function OpsLogsPage() {
               <option value="WARN">Warn, Error, Critical</option>
               <option value="INFO">Info Only</option>
             </select>
-            <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-outline text-[14px] pointer-events-none">
+            <Icon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-outline text-[14px] pointer-events-none">
               expand_more
-            </span>
+            </Icon>
           </div>
 
           <div className="relative">
@@ -545,9 +546,9 @@ export default function OpsLogsPage() {
               <option value="db-postgres.replica-2">db-postgres.replica-2</option>
               <option value="worker-temporal.jobs">worker-temporal.jobs</option>
             </select>
-            <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-outline text-[14px] pointer-events-none">
+            <Icon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-outline text-[14px] pointer-events-none">
               expand_more
-            </span>
+            </Icon>
           </div>
 
           <button
@@ -562,7 +563,7 @@ export default function OpsLogsPage() {
             className="h-8 px-2 bg-surface hover:bg-surface-container rounded text-outline hover:text-on-surface flex items-center gap-1 font-label-sm text-label-sm transition-colors cursor-pointer"
             title="Reset all applied filters"
           >
-            <span className="material-symbols-outlined text-[14px]">filter_alt_off</span>
+            <Icon className="text-[14px]">filter_alt_off</Icon>
             <span>Reset</span>
           </button>
 
@@ -582,7 +583,7 @@ export default function OpsLogsPage() {
             <div className="w-full bg-surface-container-low grid grid-cols-12 items-center px-6 py-1.5 font-label-sm text-label-sm text-outline uppercase tracking-wider select-none border-b border-outline-variant/30">
               <div className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-on-surface">
                 <span>TIMESTAMP (UTC)</span>
-                <span className="material-symbols-outlined text-[13px]">arrow_downward</span>
+                <Icon className="text-[13px]">arrow_downward</Icon>
               </div>
               <div className="col-span-1">LEVEL</div>
               <div className="col-span-2">SERVICE</div>
@@ -658,7 +659,7 @@ export default function OpsLogsPage() {
         {viewState === 3 && (
           <div className="flex-1 flex flex-col items-center justify-center p-12 bg-surface text-center">
             <div className="w-12 h-12 bg-surface-container rounded flex items-center justify-center text-outline mb-4">
-              <span className="material-symbols-outlined text-[28px]">search_off</span>
+              <Icon className="text-[28px]">search_off</Icon>
             </div>
             <h3 className="font-headline-md text-headline-md text-on-surface font-semibold mb-1">
               No Matching Log Events
@@ -692,7 +693,7 @@ export default function OpsLogsPage() {
         {viewState === 4 && (
           <div className="flex-1 flex flex-col items-center justify-center p-12 bg-surface text-center">
             <div className="w-14 h-14 bg-error-container/20 rounded flex items-center justify-center text-error mb-4">
-              <span className="material-symbols-outlined text-[32px]">cloud_off</span>
+              <Icon className="text-[32px]">cloud_off</Icon>
             </div>
             <div className="px-2 py-0.5 bg-error-container/40 text-on-error-container font-label-sm text-label-sm uppercase rounded font-bold mb-2">
               BUFFER SPILLOVER ALERT // DAEMON UNREACHABLE
@@ -715,7 +716,7 @@ export default function OpsLogsPage() {
                 onClick={() => setViewState(1)}
                 className="h-8 px-4 bg-error text-on-error font-label-md text-label-md rounded font-bold uppercase transition-colors hover:opacity-90 flex items-center gap-1.5 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                <Icon className="text-[16px]">restart_alt</Icon>
                 <span>Attempt Daemon Reconnect</span>
               </button>
               <button
@@ -773,14 +774,14 @@ export default function OpsLogsPage() {
                   className="p-1 text-outline hover:text-on-surface rounded bg-surface hover:bg-surface-container-high transition-colors cursor-pointer"
                   title="Copy Raw Event JSON"
                 >
-                  <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                  <Icon className="text-[16px]">content_copy</Icon>
                 </button>
                 <button
                   type="button"
                   className="p-1 text-outline hover:text-on-surface rounded bg-surface hover:bg-surface-container-high transition-colors cursor-pointer"
                   title="Open Trace in Jaeger / Tempo"
                 >
-                  <span className="material-symbols-outlined text-[16px]">hub</span>
+                  <Icon className="text-[16px]">hub</Icon>
                 </button>
                 <button
                   type="button"
@@ -788,7 +789,7 @@ export default function OpsLogsPage() {
                   className="p-1 text-outline hover:text-on-surface rounded bg-surface hover:bg-surface-container-high transition-colors ml-1 cursor-pointer"
                   title="Close Detail Panel"
                 >
-                  <span className="material-symbols-outlined text-[16px]">close</span>
+                  <Icon className="text-[16px]">close</Icon>
                 </button>
               </div>
             </div>
@@ -822,21 +823,21 @@ export default function OpsLogsPage() {
                   <span className="font-label-sm text-label-sm text-outline uppercase">REQUEST ID</span>
                   <div className="flex items-center justify-between">
                     <span className="font-code-md text-code-md text-primary font-semibold">{selectedLog.reqId}</span>
-                    <span
+                    <Icon
                       onClick={() => triggerToast('Copied Request ID')}
-                      className="material-symbols-outlined text-[13px] text-outline cursor-pointer hover:text-on-surface"
+                      className="text-[13px] text-outline cursor-pointer hover:text-on-surface"
                     >
                       content_copy
-                    </span>
+                    </Icon>
                   </div>
                 </div>
                 <div className="p-2.5 bg-surface rounded flex flex-col gap-0.5 border border-outline-variant/20">
                   <span className="font-label-sm text-label-sm text-outline uppercase">TRACE ID</span>
                   <div className="flex items-center justify-between">
                     <span className="font-code-md text-code-md text-tertiary font-semibold">{selectedLog.traceId}</span>
-                    <span className="material-symbols-outlined text-[13px] text-outline cursor-pointer hover:text-on-surface">
+                    <Icon className="text-[13px] text-outline cursor-pointer hover:text-on-surface">
                       open_in_new
-                    </span>
+                    </Icon>
                   </div>
                 </div>
               </div>
@@ -990,7 +991,7 @@ export default function OpsLogsPage() {
       {/* Toast Overlay */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 bg-surface-container-highest px-3 py-2 rounded shadow-xl text-on-surface font-label-sm text-label-sm flex items-center gap-2 z-50">
-          <span className="material-symbols-outlined text-[16px] text-primary">check_circle</span>
+          <Icon className="text-[16px] text-primary">check_circle</Icon>
           <span>{toastMessage}</span>
         </div>
       )}
