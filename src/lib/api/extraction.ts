@@ -142,7 +142,7 @@ export async function getExtractionDocumentById(id: string): Promise<ExtractionD
 }
 
 /**
- * Retrieves structured timetable event records synthesized by Lexi from the document.
+ * Retrieves structured timetable event records synthesized by Zuri from the document.
  */
 // TODO(real): GET /api/v1/materials/:id
 export async function getExtractedEventRecords(docId: string): Promise<ExtractedEventRecord[]> {

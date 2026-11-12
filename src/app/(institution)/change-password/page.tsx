@@ -1,21 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
-import { useRouter } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { PasswordField, Button, Alert } from '@/components/ui';
+import { SlidersHorizontal, CheckCircle2 } from 'lucide-react';
 
-export default function InstitutionChangePasswordPage() {
+export type ChangePasswordState = 'default' | 'submitting' | 'error' | 'success';
+
+function ChangePasswordContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
+
+  const [harnessState, setHarnessState] = useState<ChangePasswordState>('default');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
+    if (isSubmitting || harnessState === 'submitting') return;
 
     if (newPassword.length < 8) {
       setErrorMessage('New password must be at least 8 characters long.');
@@ -23,11 +32,11 @@ export default function InstitutionChangePasswordPage() {
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMessage('New passwords do not match.');
+      setErrorMessage('New passwords do not match. Check both and try again.');
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
@@ -50,7 +59,9 @@ export default function InstitutionChangePasswordPage() {
         if (res.status === 401) {
           setErrorMessage('Current password is incorrect or session has expired.');
         } else if (res.status === 429) {
-          setErrorMessage(data?.message || 'Too many attempts. Please wait before retrying.');
+          setErrorMessage(
+            data?.message || 'Too many attempts. Please wait before retrying.'
+          );
         } else if (res.status === 503) {
           setErrorMessage('Password service is temporarily unavailable. Please retry shortly.');
         } else {
@@ -64,96 +75,200 @@ export default function InstitutionChangePasswordPage() {
         router.push('/dashboard');
       }, 1200);
     } catch {
-      setErrorMessage('Network connection error. Please try again.');
+      setErrorMessage('Network connection error. Please check your connection and retry.');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
+  const isFormDisabled = isSubmitting || harnessState === 'submitting';
+  const isSuccess = Boolean(successMessage) || harnessState === 'success';
+  const effectiveError =
+    harnessState === 'error'
+      ? errorMessage || 'Current password is incorrect. Check your details and try again.'
+      : errorMessage;
+
   return (
-    <div className="max-w-md mx-auto my-12 p-6 bg-surface-container rounded-lg border border-outline-variant shadow-sm">
-      <h1 className="text-xl font-bold text-primary mb-2">Change Password</h1>
-      <p className="text-sm text-on-surface-variant mb-6">
-        A password change is required for your account before proceeding.
-      </p>
-
-      {errorMessage && (
-        <div
-          role="alert"
-          className="mb-4 p-3 rounded text-sm bg-error-container/20 border border-error-container/40 text-on-surface flex items-start gap-2"
+    <AuthLayout
+      editorialStatement="Update your password to continue."
+      backLink={{ href: '/login', label: 'Return to sign in' }}
+    >
+      {/* Test states harness */}
+      {showHarness && (
+        <aside
+          aria-label="Testing states harness"
+          className="mb-6 p-2.5 rounded-md bg-surface-container-high border border-outline-variant/50 text-caption flex flex-wrap items-center justify-between gap-2"
         >
-          <Icon className="text-error text-[18px] shrink-0 mt-0.5">error</Icon>
-          <span>{errorMessage}</span>
-        </div>
+          <div className="flex items-center gap-1.5 font-medium text-on-surface">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+            <span>Auth states</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setHarnessState('default');
+                setErrorMessage(null);
+                setSuccessMessage(null);
+              }}
+              className={`px-2 py-0.5 rounded text-caption transition-colors ${
+                harnessState === 'default'
+                  ? 'bg-primary text-on-primary font-semibold'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest'
+              }`}
+            >
+              Default
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setHarnessState('submitting');
+                setErrorMessage(null);
+              }}
+              className={`px-2 py-0.5 rounded text-caption transition-colors ${
+                harnessState === 'submitting'
+                  ? 'bg-primary text-on-primary font-semibold'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest'
+              }`}
+            >
+              Loading
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setHarnessState('error');
+                setSuccessMessage(null);
+              }}
+              className={`px-2 py-0.5 rounded text-caption transition-colors ${
+                harnessState === 'error'
+                  ? 'bg-primary text-on-primary font-semibold'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest'
+              }`}
+            >
+              Error
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setHarnessState('success');
+                setErrorMessage(null);
+              }}
+              className={`px-2 py-0.5 rounded text-caption transition-colors ${
+                harnessState === 'success'
+                  ? 'bg-primary text-on-primary font-semibold'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest'
+              }`}
+            >
+              Success
+            </button>
+          </div>
+        </aside>
       )}
 
-      {successMessage && (
-        <div
-          role="status"
-          className="mb-4 p-3 rounded text-sm bg-secondary-container/20 border border-secondary-container/40 text-on-surface flex items-start gap-2"
-        >
-          <Icon className="text-secondary text-[18px] shrink-0 mt-0.5">check_circle</Icon>
-          <span>{successMessage}</span>
-        </div>
-      )}
+      {/* Header title */}
+      <div className="mb-6">
+        <h1 className="text-display-sm font-editorial italic text-text-primary">
+          Change your password
+        </h1>
+        <p className="text-body-sm text-text-muted mt-1.5">
+          A password update is required for your account before proceeding.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant" htmlFor="current-pw">
-            Current Password
-          </label>
-          <input
-            id="current-pw"
-            type="password"
-            required
-            disabled={isLoading}
+      {/* Form or success state */}
+      {isSuccess ? (
+        <div className="flex flex-col gap-5">
+          <div className="p-4 rounded-md bg-primary-fixed/30 border border-primary/20 flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="flex flex-col gap-1 text-body-sm text-text-primary">
+              <span className="font-medium">Password updated</span>
+              <p className="text-body-xs text-text-muted leading-relaxed">
+                {successMessage ||
+                  'Your password has been updated successfully. Redirecting you to the institution dashboard...'}
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center w-full h-10 px-4 rounded-md bg-primary text-on-primary text-body-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              Continue to dashboard
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <PasswordField
+            id="current-password"
+            label="Current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             placeholder="••••••••••••"
-            className="w-full px-3 py-2 bg-surface-container-lowest text-on-surface text-sm rounded border border-outline-variant focus:outline-none focus:border-primary disabled:opacity-50"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant" htmlFor="new-pw">
-            New Password (minimum 8 characters)
-          </label>
-          <input
-            id="new-pw"
-            type="password"
+            autoComplete="current-password"
+            disabled={isFormDisabled}
             required
-            disabled={isLoading}
+          />
+
+          <PasswordField
+            id="new-password"
+            label="New password"
+            helperText="Minimum 8 characters"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="••••••••••••"
-            className="w-full px-3 py-2 bg-surface-container-lowest text-on-surface text-sm rounded border border-outline-variant focus:outline-none focus:border-primary disabled:opacity-50"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant" htmlFor="confirm-pw">
-            Confirm New Password
-          </label>
-          <input
-            id="confirm-pw"
-            type="password"
+            autoComplete="new-password"
+            disabled={isFormDisabled}
             required
-            disabled={isLoading}
+          />
+
+          <PasswordField
+            id="confirm-password"
+            label="Confirm new password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="••••••••••••"
-            className="w-full px-3 py-2 bg-surface-container-lowest text-on-surface text-sm rounded border border-outline-variant focus:outline-none focus:border-primary disabled:opacity-50"
+            autoComplete="new-password"
+            disabled={isFormDisabled}
+            required
           />
-        </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="inline-block w-full text-center py-2 px-4 bg-primary text-on-primary rounded font-medium text-sm transition-opacity disabled:opacity-60 cursor-pointer mt-2"
-        >
-          {isLoading ? 'Updating Password...' : 'Update Password'}
-        </button>
-      </form>
-    </div>
+          {effectiveError && (
+            <Alert
+              variant="error"
+              description={effectiveError}
+            />
+          )}
+
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full h-11"
+            isLoading={isFormDisabled}
+            disabled={isFormDisabled}
+          >
+            Update password
+          </Button>
+
+          <div className="text-center pt-2">
+            <Link
+              href="/login"
+              className="text-caption text-text-muted hover:text-text-primary transition-colors hover:underline"
+            >
+              Cancel and sign out
+            </Link>
+          </div>
+        </form>
+      )}
+    </AuthLayout>
+  );
+}
+
+export default function InstitutionChangePasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-surface" />}>
+      <ChangePasswordContent />
+    </Suspense>
   );
 }

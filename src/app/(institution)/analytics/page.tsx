@@ -2,10 +2,17 @@
 
 import React from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { StatePreview } from '@/components/ui/StatePreview';
 import Link from 'next/link';
 
 export default function AnalyticsPage() {
   return (
+    <StatePreview
+      loadingLabel="Loading analytics"
+      emptyTitle="No analytics are available"
+      emptyDescription="Choose a reporting period with activity to view analytics."
+      errorDescription="Analytics could not be loaded. Check your connection and try again."
+    >
     <div className="max-w-max-width mx-auto px-margin-desktop py-space-xl">
       <div className="flex flex-col gap-space-md">
         <div className="pb-4 border-b border-outline-variant/20">
@@ -62,5 +69,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
     </div>
+    </StatePreview>
   );
 }

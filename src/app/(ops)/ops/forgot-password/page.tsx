@@ -1,22 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { Wordmark } from '@/components/brand/Wordmark';
+import { TextField, Button, Alert } from '@/components/ui';
+import { SlidersHorizontal, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
-export default function OpsForgotPasswordPage() {
+export type OpsForgotPasswordState = 'default' | 'submitting' | 'error' | 'sent';
+
+function OpsForgotPasswordContent() {
+  const searchParams = useSearchParams();
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
+
+  const [harnessState, setHarnessState] = useState<OpsForgotPasswordState>('default');
   const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
+    if (isSubmitting || harnessState === 'submitting') return;
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     setErrorMessage(null);
-    setMessage(null);
+    setSuccessMessage(null);
 
     try {
       const res = await fetch('/api/auth/forgot-password', {
@@ -32,121 +41,219 @@ export default function OpsForgotPasswordPage() {
 
       if (!res.ok) {
         if (res.status === 429) {
-          setErrorMessage(data?.message || 'Rate limit threshold exceeded. Please wait before retrying.');
+          setErrorMessage(
+            data?.message || 'Rate limit threshold exceeded. Please wait before retrying.'
+          );
         } else if (res.status === 503) {
-          setErrorMessage('Operations Gateway is temporarily unavailable.');
+          setErrorMessage('Operations gateway is temporarily unavailable. Please retry shortly.');
         } else {
           setErrorMessage(data?.message || 'Unable to process recovery request.');
         }
         return;
       }
 
-      setMessage(data?.message || 'If identity is verified in cluster registry, dispatch token has been issued.');
+      setSuccessMessage(
+        data?.message ||
+          'If identity is registered in the directory, recovery instructions have been dispatched.'
+      );
     } catch {
-      setErrorMessage('Network communication error with gateway.');
+      setErrorMessage('Network communication error with operations gateway.');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
+  const isFormDisabled = isSubmitting || harnessState === 'submitting';
+  const isSent = Boolean(successMessage) || harnessState === 'sent';
+  const effectiveError =
+    harnessState === 'error'
+      ? errorMessage || 'Work email not found in operator directory. Check spelling and retry.'
+      : errorMessage;
+
   return (
-    <div className="bg-surface font-body-md text-on-surface min-h-screen flex flex-col justify-between antialiased">
-      {/* HEADER BAR */}
-      <header className="w-full h-14 border-b border-outline-variant/30 bg-surface-container-low px-margin flex items-center justify-between">
-        <div className="flex items-center gap-space-sm">
-          <span className="font-headline-md text-headline-md font-semibold tracking-tight text-on-surface">LEXI</span>
-          <span className="px-1.5 py-0.5 bg-surface-container-highest border border-outline-variant/50 font-label-sm text-label-sm text-on-surface-variant uppercase">
-            Operations
-          </span>
-        </div>
-        <span className="font-label-sm text-label-sm text-outline uppercase">IDENTITY RECOVERY DISPATCH</span>
+    <div className="min-h-dvh bg-ops-canvas text-ops-text flex flex-col justify-between p-6 sm:p-10">
+      {/* Top Header */}
+      <header className="flex items-center justify-between">
+        <Wordmark tone="dark" />
+        <span className="text-caption text-ops-text-muted font-mono">
+          INTERNAL CONSOLE
+        </span>
       </header>
 
-      {/* MAIN CONTAINER */}
-      <main className="w-full flex-1 flex items-center justify-center p-margin">
-        <div className="w-full max-w-xl bg-surface-container rounded-xl shadow-xl overflow-hidden relative border border-outline-variant/30">
-          <div className="bg-surface-container-high px-space-lg py-3 flex items-center justify-between border-b border-outline-variant/30">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-surface-container-highest text-tertiary">
-                <Icon className="text-[14px]">lock_reset</Icon>
-              </span>
-              <span className="font-code-md text-code-md text-on-surface tracking-wide">ENCLAVE://IDENTITY-TRIAGE</span>
+      {/* Main Content Area */}
+      <main className="w-full flex-1 flex flex-col items-center justify-center py-8">
+        {/* Test harness */}
+        {showHarness && (
+          <aside
+            aria-label="Testing states harness"
+            className="w-full max-w-[420px] mb-6 p-2.5 rounded-sm bg-ops-panel border border-ops-border text-caption flex flex-wrap items-center justify-between gap-2"
+          >
+            <div className="flex items-center gap-1.5 font-medium text-ops-text">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-ops-accent" aria-hidden="true" />
+              <span>Ops states</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-              <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">SecOps Channel</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setHarnessState('default');
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                  harnessState === 'default'
+                    ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                    : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+                }`}
+              >
+                Default
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setHarnessState('submitting');
+                  setErrorMessage(null);
+                }}
+                className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                  harnessState === 'submitting'
+                    ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                    : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+                }`}
+              >
+                Loading
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setHarnessState('error');
+                  setSuccessMessage(null);
+                }}
+                className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                  harnessState === 'error'
+                    ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                    : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+                }`}
+              >
+                Error
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setHarnessState('sent');
+                  setErrorMessage(null);
+                }}
+                className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                  harnessState === 'sent'
+                    ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                    : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+                }`}
+              >
+                Sent
+              </button>
             </div>
+          </aside>
+        )}
+
+        <div className="w-full max-w-[420px] flex flex-col">
+          {/* Back link */}
+          <div className="mb-4">
+            <Link
+              href="/ops/login"
+              className="inline-flex items-center gap-1.5 text-caption font-medium text-ops-text-muted hover:text-ops-text transition-colors outline-none focus-visible:focus-ring rounded-xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Back to sign in</span>
+            </Link>
           </div>
 
-          <div className="p-space-xl flex flex-col gap-space-lg">
-            <div className="flex flex-col gap-1.5">
-              <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold tracking-tight">
-                Request Credential Recovery
-              </h1>
-              <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Enter your authorized work identity email. If registered in the operator directory, recovery instructions will be transmitted via secure dispatch.
-              </p>
-            </div>
+          {/* Header titles */}
+          <div className="mb-6">
+            <h1 className="text-[28px] leading-tight font-semibold text-ops-text font-sans">
+              Reset ops password
+            </h1>
+            <p className="text-body-sm text-ops-text-muted mt-1.5">
+              Enter your authorized work email to receive a recovery token.
+            </p>
+          </div>
 
-            {errorMessage && (
-              <div className="rounded-lg bg-error-container/20 p-space-md flex items-start gap-3 border border-error-container/40">
-                <Icon className="text-error mt-0.5 text-[18px]">warning</Icon>
-                <span className="font-body-sm text-body-sm text-on-error-container">{errorMessage}</span>
-              </div>
-            )}
-
-            {message && (
-              <div className="rounded-lg bg-secondary-container/20 p-space-md flex items-start gap-3 border border-secondary-container/40">
-                <Icon className="text-secondary mt-0.5 text-[18px]">mark_email_read</Icon>
-                <span className="font-body-sm text-body-sm text-on-surface">{message}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-space-md">
-              <div className="flex flex-col gap-1.5">
-                <label className="font-label-md text-label-md text-on-surface-variant tracking-wider uppercase font-medium" htmlFor="ops-forgot-email">
-                  Operator Work Email
-                </label>
-                <input
-                  id="ops-forgot-email"
-                  type="email"
-                  required
-                  disabled={isLoading}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="operator@lexi.internal"
-                  className="w-full h-9 px-3 bg-surface-container-lowest text-on-surface font-code-md text-code-md rounded border border-outline-variant/30 focus:outline-none focus:bg-surface-container-low disabled:opacity-50"
-                />
+          {/* Form or Sent Banner */}
+          {isSent ? (
+            <div className="flex flex-col gap-5">
+              <div className="p-4 rounded-sm bg-ops-panel border border-ops-border flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-ops-accent shrink-0 mt-0.5" aria-hidden="true" />
+                <div className="flex flex-col gap-1 text-body-sm text-ops-text">
+                  <span className="font-medium">Recovery dispatch sent</span>
+                  <p className="text-caption text-ops-text-muted leading-relaxed">
+                    {successMessage ||
+                      'If identity is registered in the directory, recovery instructions have been dispatched to your email address.'}
+                  </p>
+                </div>
               </div>
 
               <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-10 px-4 rounded font-code-lg text-code-lg font-semibold tracking-wider uppercase flex items-center justify-center gap-2 bg-primary-container text-on-primary-container hover:bg-primary transition-all shadow-xs cursor-pointer disabled:opacity-60"
+                <Link
+                  href="/ops/login"
+                  className="inline-flex items-center justify-center w-full h-10 px-4 rounded-sm border border-ops-border bg-ops-panel text-ops-text text-body-sm font-medium hover:bg-ops-panel-raised transition-colors"
                 >
-                  <Icon className="text-[18px]">
-                    {isLoading ? 'sync' : 'send'}
-                  </Icon>
-                  <span>{isLoading ? 'Dispatching Token...' : 'Dispatch Recovery Token'}</span>
-                </button>
+                  Return to sign in
+                </Link>
               </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <TextField
+                label="Work email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                autoComplete="email"
+                disabled={isFormDisabled}
+                required
+              />
+
+              {effectiveError && (
+                <Alert
+                  variant="error"
+                  description={effectiveError}
+                />
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full h-11"
+                isLoading={isFormDisabled}
+                disabled={isFormDisabled}
+              >
+                Send recovery token
+              </Button>
 
               <div className="text-center pt-2">
-                <Link href="/ops/login" className="font-label-sm text-label-sm text-tertiary hover:underline">
-                  ← Return to Operations Login
+                <Link
+                  href="/ops/login"
+                  className="text-caption text-ops-text-muted hover:text-ops-text transition-colors hover:underline"
+                >
+                  Return to sign in
                 </Link>
               </div>
             </form>
-          </div>
+          )}
         </div>
       </main>
 
-      {/* FOOTER BAR */}
-      <footer className="w-full bg-surface-container-low border-t border-outline-variant/30 px-margin py-space-sm flex items-center justify-between font-label-sm text-label-sm text-outline">
-        <span>AUTHENTICATION GATEWAY // SECURE TRIAGE</span>
-        <span className="text-outline font-medium">DISPATCH SERVICE</span>
+      {/* Bottom Footer */}
+      <footer className="py-6 text-center text-caption text-ops-text-muted">
+        Sign-in activity is logged.
       </footer>
     </div>
+  );
+}
+
+export default function OpsForgotPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-ops-canvas" />}>
+      <OpsForgotPasswordContent />
+    </Suspense>
   );
 }

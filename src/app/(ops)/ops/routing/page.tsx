@@ -1,882 +1,747 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
-import { KpiTile } from '@/components/ui/KpiTile';
+import React, { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import {
+  Split,
+  Search,
+  Filter,
+  SlidersHorizontal,
+  RefreshCw,
+  Copy,
+  Check,
+  CheckCircle2,
+  Clock,
+  Layers,
+  ArrowRight,
+  X,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import {
+  DataTable,
+  Column,
+  Button,
+  Badge,
+  Alert,
+  Skeleton,
+  EmptyState,
+  Card,
+} from '@/components/ui';
 
-interface DecisionLogItem {
+export type RoutingPageState = 'default' | 'loading' | 'empty' | 'error';
+
+interface AlternativeEval {
+  label: string;
+  val: string;
+  isSelected?: boolean;
+}
+
+interface WaterfallStep {
+  label: string;
+  val: string;
+  pct: string;
+  color: string;
+}
+
+interface DecisionRecord {
+  id: string;
   reqId: string;
   time: string;
   classification: string;
   tier: string;
+  tierLevel: 'T0' | 'T1' | 'T2' | 'T3' | 'T4';
   model: string;
-  tierColor: string;
   reason: string;
-  status: string;
+  status: 'Cache hit' | 'Dispatched' | 'Fallback';
   statusCode: string;
-  statusBadgeClass: string;
   latency: string;
-  latencyColor: string;
   origin: string;
   studentHash: string;
   prompt: string;
   tokens: string;
   naiveCost: string;
   billedCost: string;
-  intent: string;
   confScore: string;
-  confWidth: string;
-  complexity: string;
-  docDepth: string;
-  classifierLatency: string;
-  assignedTier: string;
-  assignedTierClass: string;
   dispatchedNode: string;
   matchMetric: string;
-  interception: string;
   policyDirective: string;
-  reasonText: string;
-  fallbackTriggered: string;
-  fallbackTriggeredClass: string;
-  circuitStatus: string;
-  standbyPool: string;
-  totalLatency: string;
   traceId: string;
   ingressNode: string;
   cacheKey: string;
-  alternatives: Array<{ label: string; val: string; cls: string }>;
-  waterfall: Array<{ label: string; val: string; pct: string; color: string }>;
+  alternatives: AlternativeEval[];
+  waterfall: WaterfallStep[];
 }
 
-const decisionDataset: Record<string, DecisionLogItem> = {
-  req_9c14a82e: {
-    reqId: 'req_9c14a82e',
-    time: '15:29:12',
-    classification: 'Syllabus Factoid',
-    tier: 'T1 Semantic Cache',
-    model: 'Qdrant NVMe [cos 0.984]',
-    tierColor: 'text-primary',
-    reason: 'Lowest-cost path satisfying context and quality requirements.',
-    status: '200 CACHE',
-    statusCode: '200 Intercepted (Cache Hit)',
-    statusBadgeClass: 'bg-primary/10 border-primary/30 text-primary',
-    latency: '15.4ms',
-    latencyColor: 'text-primary',
-    origin: 'Oxford-Central // CS-204 Algorithmic Complexity',
-    studentHash: 'usr_anon_49c2a8f09',
-    prompt: '“What is the late submission penalty policy for Problem Set 3 according to the syllabus?”',
-    tokens: '28 tokens',
-    naiveCost: '$0.00084',
-    billedCost: '$0.00000 (Free)',
-    intent: 'Syllabus Policy Lookup',
-    confScore: '0.992',
-    confWidth: '99.2%',
-    complexity: 'Low (Deterministic Factoid)',
-    docDepth: 'Single Document Node (<4k tokens)',
-    classifierLatency: '3.2ms (Edge ONNX classifier)',
-    assignedTier: 'Tier 1 // Semantic & Context Cache',
-    assignedTierClass: 'bg-primary/10 border-primary/30 text-primary',
-    dispatchedNode: 'Qdrant NVMe Cluster (eu-west-1b)',
-    matchMetric: 'Cosine Similarity: 0.984 (Threshold >= 0.960)',
-    interception: 'Intercepted before Tier 3 Frontier dispatch',
-    policyDirective: 'POLICY_LEAST_COST_QUALITY_SUFFICIENT',
-    reasonText:
-      'Lowest-cost path satisfying context and quality requirements. Ingress embedding matched authenticated course syllabus node with 0.984 semantic fidelity. Zero LLM tokens consumed.',
-    fallbackTriggered: 'No (Primary Path Nominal)',
-    fallbackTriggeredClass: 'text-primary',
-    circuitStatus: 'Closed (Healthy)',
-    standbyPool: 'Anthropic Haiku → OpenAI mini',
-    totalLatency: '15.4ms total (p95: 42ms)',
-    traceId: 'trace_8fa90b41e3d09a2',
-    ingressNode: 'fra-edge-09.lexi.internal',
-    cacheKey: 'sha256:7c91e4a8b012...',
-    alternatives: [
-      { label: 'Tier 0 Rule Cache:', val: 'MISS (query phrasing varied)', cls: 'text-outline' },
-      { label: 'Tier 1 Semantic Cache:', val: 'HIT (0.984 >= 0.960) → SELECTED', cls: 'text-primary font-bold' },
-      { label: 'Tier 2 Local Triton 7B:', val: 'BYPASSED (T1 cache satisfied)', cls: 'text-outline' },
-      { label: 'Tier 3 Claude Haiku:', val: 'BYPASSED (saved $0.00084)', cls: 'text-primary font-medium' },
-      { label: 'Tier 4 Claude Sonnet:', val: 'BYPASSED', cls: 'text-outline' },
-    ],
-    waterfall: [
-      { label: 'Ingress Envoy Gateway', val: '1.1ms', pct: '7%', color: 'bg-outline' },
-      { label: 'ONNX Classification & Embedding', val: '4.2ms', pct: '27%', color: 'bg-tertiary' },
-      { label: 'Qdrant Vector Cache Query', val: '8.7ms', pct: '56%', color: 'bg-primary' },
-      { label: 'Payload Assembly & Egress', val: '1.4ms', pct: '9%', color: 'bg-outline' },
-    ],
-  },
-  req_4b77f102: {
-    reqId: 'req_4b77f102',
-    time: '15:28:58',
-    classification: 'Course Policy',
-    tier: 'T0 Deterministic',
-    model: 'Rule Index [Zero-Compute]',
-    tierColor: 'text-primary',
-    reason: 'Exact query hash matched in-memory syllabus index; bypassed LLM.',
-    status: '200 CACHE',
-    statusCode: '200 Exact Rule Match (T0)',
-    statusBadgeClass: 'bg-primary/10 border-primary/30 text-primary',
-    latency: '1.8ms',
-    latencyColor: 'text-primary',
-    origin: 'ETH-Zurich // PHY-101 Classical Mechanics',
-    studentHash: 'usr_anon_88d31cc21',
-    prompt: '“Where are Dr. Meyer’s office hours located on Thursdays?”',
-    tokens: '14 tokens',
-    naiveCost: '$0.00042',
-    billedCost: '$0.00000 (Free)',
-    intent: 'Office Hours Directory',
-    confScore: '1.000',
-    confWidth: '100%',
-    complexity: 'Zero-Inference Index',
-    docDepth: 'In-Memory Hash Node',
-    classifierLatency: '0.4ms (Bypassed)',
-    assignedTier: 'Tier 0 // Deterministic Rule Index',
-    assignedTierClass: 'bg-primary/10 border-primary/30 text-primary',
-    dispatchedNode: 'Redis L1 Memory Fabric (fra-01)',
-    matchMetric: 'Exact SHA-256 Hash Match (1.000)',
-    interception: 'Interception at Ingress Mesh Gateway',
-    policyDirective: 'POLICY_DETERMINISTIC_CACHE_FIRST',
-    reasonText:
-      'Exact query hash matched in-memory syllabus index; bypassed LLM. Zero GPU or Frontier compute invoked.',
-    fallbackTriggered: 'No (T0 Exact Match)',
-    fallbackTriggeredClass: 'text-primary',
-    circuitStatus: 'Closed (Healthy)',
-    standbyPool: 'Qdrant NVMe Semantic Standby',
-    totalLatency: '1.8ms total (p95: 42ms)',
-    traceId: 'trace_11ab7284f09d3',
-    ingressNode: 'fra-edge-02.lexi.internal',
-    cacheKey: 'sha256:39bf2049d91a...',
-    alternatives: [
-      { label: 'Tier 0 Rule Cache:', val: 'EXACT MATCH (1.000) → SELECTED', cls: 'text-primary font-bold' },
-      { label: 'Tier 1 Semantic Cache:', val: 'BYPASSED (T0 hit)', cls: 'text-outline' },
-      { label: 'Tier 2 Local Triton 7B:', val: 'BYPASSED', cls: 'text-outline' },
-      { label: 'Tier 3 Claude Haiku:', val: 'BYPASSED (saved $0.00042)', cls: 'text-primary font-medium' },
-      { label: 'Tier 4 Claude Sonnet:', val: 'BYPASSED', cls: 'text-outline' },
-    ],
-    waterfall: [
-      { label: 'Ingress Envoy Gateway', val: '0.8ms', pct: '44%', color: 'bg-outline' },
-      { label: 'L1 Memory Hash Lookup', val: '0.6ms', pct: '33%', color: 'bg-primary' },
-      { label: 'Payload Serialization', val: '0.4ms', pct: '23%', color: 'bg-tertiary' },
-    ],
-  },
-  req_2e88a319: {
-    reqId: 'req_2e88a319',
-    time: '15:28:41',
-    classification: 'Rubric Evaluation',
-    tier: 'T2 Edge 7B',
-    model: 'Triton Mistral-7B',
-    tierColor: 'text-secondary',
-    reason: 'Distilled 7B confidence score 0.942 met rubric assessment quality floor.',
-    status: '200 OK',
-    statusCode: '200 Dispatched (T2 Triton)',
-    statusBadgeClass: 'bg-surface-container-high border-outline-variant/40 text-on-surface',
-    latency: '112ms',
-    latencyColor: 'text-tertiary',
-    origin: 'Stanford // CS-106A Code in Place',
-    studentHash: 'usr_anon_22ef044b1',
-    prompt: '“Evaluate my Python binary search implementation against the time-complexity rubric.”',
-    tokens: '340 prompt tokens',
-    naiveCost: '$0.00410',
-    billedCost: '$0.00012 (Edge GPU)',
-    intent: 'Rubric Evaluation & Code Feedback',
-    confScore: '0.942',
-    confWidth: '94.2%',
-    complexity: 'Moderate (Rubric Parsing)',
-    docDepth: 'Dual AST Document (8k context)',
-    classifierLatency: '4.1ms (Edge ONNX)',
-    assignedTier: 'Tier 2 // Local Edge Triton 7B',
-    assignedTierClass: 'bg-secondary/15 border-secondary/40 text-secondary',
-    dispatchedNode: 'Triton VLLM Worker 14 (H100 NVLink)',
-    matchMetric: 'Confidence: 0.942 >= Rubric Floor (0.90)',
-    interception: 'Bypassed T3/T4 Frontier via distilled model',
-    policyDirective: 'POLICY_EDGE_DISTILLED_PREFERENTIAL',
-    reasonText:
-      'Distilled 7B confidence score 0.942 met rubric assessment quality floor. Successfully evaluated on local Triton cluster without egress to commercial cloud.',
-    fallbackTriggered: 'No (Local Model Confident)',
-    fallbackTriggeredClass: 'text-primary',
-    circuitStatus: 'Closed (Healthy)',
-    standbyPool: 'Claude 3.5 Haiku Standby',
-    totalLatency: '112ms total (p95: 42ms)',
-    traceId: 'trace_9934fc0284e6a',
-    ingressNode: 'us-east-edge-04.lexi.internal',
-    cacheKey: 'sha256:e3119ac0340b...',
-    alternatives: [
-      { label: 'Tier 0 Rule Cache:', val: 'MISS (dynamic code input)', cls: 'text-outline' },
-      { label: 'Tier 1 Semantic Cache:', val: 'MISS (student-authored code unique)', cls: 'text-outline' },
-      { label: 'Tier 2 Local Triton 7B:', val: 'SATISFIED (score 0.942) → SELECTED', cls: 'text-secondary font-bold' },
-      { label: 'Tier 3 Claude Haiku:', val: 'BYPASSED (saved $0.00398)', cls: 'text-primary font-medium' },
-      { label: 'Tier 4 Claude Sonnet:', val: 'BYPASSED', cls: 'text-outline' },
-    ],
-    waterfall: [
-      { label: 'Ingress Envoy Gateway', val: '1.2ms', pct: '2%', color: 'bg-outline' },
-      { label: 'ONNX Classification', val: '4.1ms', pct: '4%', color: 'bg-tertiary' },
-      { label: 'Triton Mistral-7B Inference', val: '102.5ms', pct: '91%', color: 'bg-secondary' },
-      { label: 'Stream Egress Assembly', val: '4.2ms', pct: '3%', color: 'bg-outline' },
-    ],
-  },
-  req_8d11c055: {
-    reqId: 'req_8d11c055',
-    time: '15:27:19',
-    classification: 'Multi-Doc Synthesis',
-    tier: 'T4 Frontier (Rerouted)',
-    model: 'GPT-4o [Fallback]',
-    tierColor: 'text-secondary',
-    reason: 'Claude Sonnet rate limit 429 spike; auto-rerouted to GPT-4o fallback pool.',
-    status: 'FALLBACK',
-    statusCode: 'Fallback Reroute 200 (429 Rate Limit)',
-    statusBadgeClass: 'bg-secondary/15 border-secondary/40 text-secondary',
-    latency: '1,380ms',
-    latencyColor: 'text-secondary',
-    origin: 'Berkeley // EECS-189 Intro to Machine Learning',
-    studentHash: 'usr_anon_67bb101e4',
-    prompt:
-      '“Synthesize the cross-lecture derivation between SVM dual formulation in Lecture 4 and the Kernel Trick in Lecture 7.”',
-    tokens: '1,240 tokens + 42k doc context',
-    naiveCost: '$0.02480',
-    billedCost: '$0.02610 (OpenAI Fallback)',
-    intent: 'Multi-Doc Mathematical Synthesis',
-    confScore: '0.988',
-    confWidth: '98.8%',
-    complexity: 'Critical Frontier (Deep Math)',
-    docDepth: 'Multi-Document (>40k tokens)',
-    classifierLatency: '6.8ms (Deep Embedding)',
-    assignedTier: 'Tier 4 // Deep Frontier (Failover Pool)',
-    assignedTierClass: 'bg-secondary/15 border-secondary/40 text-secondary',
-    dispatchedNode: 'OpenAI GPT-4o (us-east-1 Failover)',
-    matchMetric: 'Target: Claude 3.5 Sonnet -> FAILED (HTTP 429)',
-    interception: 'Autonomous Failover Circuit Triggered',
-    policyDirective: 'POLICY_HIGH_AVAILABILITY_FALLBACK',
-    reasonText:
-      'Claude Sonnet rate limit 429 spike; auto-rerouted to GPT-4o fallback pool. Mesh circuit breaker transparently preserved student request SLA.',
-    fallbackTriggered: 'Yes (Anthropic 429 RateLimitBreached)',
-    fallbackTriggeredClass: 'text-secondary font-bold',
-    circuitStatus: 'Degraded (Tripped Sonnet Mesh Pool)',
-    standbyPool: 'Active in Fallback Secondary (GPT-4o)',
-    totalLatency: '1,380ms total (p95: 42ms)',
-    traceId: 'trace_ff00482b9914c',
-    ingressNode: 'us-west-edge-01.lexi.internal',
-    cacheKey: 'sha256:1099ff8274ac...',
-    alternatives: [
-      { label: 'Tier 0 Rule Cache:', val: 'MISS (novel synthesis)', cls: 'text-outline' },
-      { label: 'Tier 1 Semantic Cache:', val: 'MISS (novel multi-document context)', cls: 'text-outline' },
-      { label: 'Tier 2 Local Triton 7B:', val: 'INSUFFICIENT (context > 32k tokens)', cls: 'text-outline' },
-      { label: 'Tier 4 Claude Sonnet:', val: 'FAILED (HTTP 429 Rate Limit Exceeded)', cls: 'text-error font-bold' },
-      { label: 'Tier 4 GPT-4o Fallback:', val: 'REROUTED & DISPATCHED → SELECTED', cls: 'text-secondary font-bold' },
-    ],
-    waterfall: [
-      { label: 'Ingress Envoy Gateway', val: '1.4ms', pct: '1%', color: 'bg-outline' },
-      { label: 'Multi-Doc Vector Retrieval', val: '48.2ms', pct: '3%', color: 'bg-tertiary' },
-      { label: 'Anthropic Sonnet (429 Timeout)', val: '280.0ms', pct: '20%', color: 'bg-error' },
-      { label: 'Circuit Breaker Fallback to GPT-4o', val: '1050.4ms', pct: '76%', color: 'bg-secondary' },
-    ],
-  },
-};
+function OpsRoutingContent() {
+  const searchParams = useSearchParams();
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
 
-export default function OpsRoutingPage() {
-  const [selectedReqId, setSelectedReqId] = useState<string>('req_9c14a82e');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedTimeframe, setSelectedTimeframe] = useState<string>('24h');
-  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
+  const [harnessState, setHarnessState] = useState<RoutingPageState>('default');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [tierFilter, setTierFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [selectedTrace, setSelectedTrace] = useState<DecisionRecord | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const selectedData = decisionDataset[selectedReqId] || decisionDataset['req_9c14a82e'];
+  const handleCopy = (id: string, text: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
-  const allRows = Object.values(decisionDataset);
-  const filteredRows = allRows.filter((r) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      r.reqId.toLowerCase().includes(q) ||
-      r.classification.toLowerCase().includes(q) ||
-      r.model.toLowerCase().includes(q) ||
-      r.reason.toLowerCase().includes(q) ||
-      r.origin.toLowerCase().includes(q)
-    );
+  const decisionDataset: DecisionRecord[] = [
+    {
+      id: 'req_9c14a82e',
+      reqId: 'req_9c14a82e',
+      time: '15:29:12 UTC',
+      classification: 'Syllabus policy lookup',
+      tier: 'Tier 1 Semantic cache',
+      tierLevel: 'T1',
+      model: 'Vector cache (cos 0.984)',
+      reason: 'Ingress embedding matched syllabus node with 0.984 semantic similarity. Bypassed frontier inference.',
+      status: 'Cache hit',
+      statusCode: '200 Intercepted',
+      latency: '15.4ms',
+      origin: 'CS-204 Algorithmic Complexity',
+      studentHash: 'usr_anon_49c2a',
+      prompt: 'What is the late submission penalty policy for Problem Set 3 according to the syllabus?',
+      tokens: '28 tokens',
+      naiveCost: '$0.00084',
+      billedCost: '$0.00000 (Free)',
+      confScore: '0.992',
+      dispatchedNode: 'Vector cache cluster (eu-west-1b)',
+      matchMetric: 'Cosine similarity: 0.984 (Threshold >= 0.960)',
+      policyDirective: 'POLICY_LEAST_COST_QUALITY_SUFFICIENT',
+      traceId: 'trace_8fa90b41e3d09a2',
+      ingressNode: 'edge-09.ingress.zuri.internal',
+      cacheKey: 'sha256:7c91e4a8b012...',
+      alternatives: [
+        { label: 'Tier 0 Rule cache', val: 'Miss (query phrasing varied)' },
+        { label: 'Tier 1 Semantic cache', val: 'Hit (0.984 >= 0.960) — Selected', isSelected: true },
+        { label: 'Tier 2 Local accelerator', val: 'Bypassed (T1 cache satisfied)' },
+        { label: 'Tier 3 Frontier cloud', val: 'Bypassed (saved $0.00084)' },
+      ],
+      waterfall: [
+        { label: 'Ingress Envoy gateway', val: '1.1ms', pct: '7%', color: 'var(--ops-border-strong)' },
+        { label: 'Embedding & classification', val: '4.2ms', pct: '27%', color: 'var(--ops-accent)' },
+        { label: 'Vector cache lookup', val: '8.7ms', pct: '56%', color: 'var(--ops-ok)' },
+        { label: 'Egress serialization', val: '1.4ms', pct: '9%', color: 'var(--ops-border-strong)' },
+      ],
+    },
+    {
+      id: 'req_4b77f102',
+      reqId: 'req_4b77f102',
+      time: '15:28:58 UTC',
+      classification: 'Office hours directory',
+      tier: 'Tier 0 Deterministic rule',
+      tierLevel: 'T0',
+      model: 'Rule index (zero compute)',
+      reason: 'Exact query hash matched syllabus index in memory. Zero GPU or frontier tokens invoked.',
+      status: 'Cache hit',
+      statusCode: '200 Exact Rule Match',
+      latency: '1.8ms',
+      origin: 'PHY-101 Classical Mechanics',
+      studentHash: 'usr_anon_88d31',
+      prompt: 'Where are Dr. Meyer’s office hours located on Thursdays?',
+      tokens: '14 tokens',
+      naiveCost: '$0.00042',
+      billedCost: '$0.00000 (Free)',
+      confScore: '1.000',
+      dispatchedNode: 'Memory fabric (node-01)',
+      matchMetric: 'Exact hash match (1.000)',
+      policyDirective: 'POLICY_DETERMINISTIC_CACHE_FIRST',
+      traceId: 'trace_11ab7284f09d3',
+      ingressNode: 'edge-02.ingress.zuri.internal',
+      cacheKey: 'sha256:39bf2049d91a...',
+      alternatives: [
+        { label: 'Tier 0 Rule cache', val: 'Exact match (1.000) — Selected', isSelected: true },
+        { label: 'Tier 1 Semantic cache', val: 'Bypassed' },
+        { label: 'Tier 2 Local accelerator', val: 'Bypassed' },
+        { label: 'Tier 3 Frontier cloud', val: 'Bypassed (saved $0.00042)' },
+      ],
+      waterfall: [
+        { label: 'Ingress Envoy gateway', val: '0.8ms', pct: '44%', color: 'var(--ops-border-strong)' },
+        { label: 'Memory hash query', val: '0.6ms', pct: '33%', color: 'var(--ops-ok)' },
+        { label: 'Payload serialization', val: '0.4ms', pct: '23%', color: 'var(--ops-border-strong)' },
+      ],
+    },
+    {
+      id: 'req_2e88a319',
+      reqId: 'req_2e88a319',
+      time: '15:28:41 UTC',
+      classification: 'Rubric evaluation',
+      tier: 'Tier 2 Local accelerator',
+      tierLevel: 'T2',
+      model: 'Triton Mistral 7B',
+      reason: 'Distilled 7B confidence score 0.942 met rubric floor. Evaluated on local compute without cloud egress.',
+      status: 'Dispatched',
+      statusCode: '200 Dispatched',
+      latency: '112ms',
+      origin: 'CS-106A Code in Place',
+      studentHash: 'usr_anon_22ef0',
+      prompt: 'Evaluate my Python binary search implementation against the time complexity rubric.',
+      tokens: '340 tokens',
+      naiveCost: '$0.00410',
+      billedCost: '$0.00012 (Local GPU)',
+      confScore: '0.942',
+      dispatchedNode: 'Worker pool 14 (H100)',
+      matchMetric: 'Confidence: 0.942 >= Floor (0.90)',
+      policyDirective: 'POLICY_EDGE_DISTILLED_PREFERENTIAL',
+      traceId: 'trace_9934fc0284e6a',
+      ingressNode: 'edge-04.ingress.zuri.internal',
+      cacheKey: 'sha256:e3119ac0340b...',
+      alternatives: [
+        { label: 'Tier 0 Rule cache', val: 'Miss (dynamic code input)' },
+        { label: 'Tier 1 Semantic cache', val: 'Miss (unique student code)' },
+        { label: 'Tier 2 Local accelerator', val: 'Satisfied (score 0.942) — Selected', isSelected: true },
+        { label: 'Tier 3 Frontier cloud', val: 'Bypassed (saved $0.00398)' },
+      ],
+      waterfall: [
+        { label: 'Ingress Envoy gateway', val: '1.2ms', pct: '2%', color: 'var(--ops-border-strong)' },
+        { label: 'Intent classifier', val: '4.1ms', pct: '4%', color: 'var(--ops-accent)' },
+        { label: 'Local model inference', val: '102.5ms', pct: '91%', color: '#60a5fa' },
+        { label: 'Stream egress assembly', val: '4.2ms', pct: '3%', color: 'var(--ops-border-strong)' },
+      ],
+    },
+    {
+      id: 'req_8d11c055',
+      reqId: 'req_8d11c055',
+      time: '15:27:19 UTC',
+      classification: 'Multi-document synthesis',
+      tier: 'Tier 4 Frontier fallback',
+      tierLevel: 'T4',
+      model: 'GPT-4o (Fallback)',
+      reason: 'Primary frontier tier rate limit 429 threshold reached. Dispatched transparently to standby secondary pool.',
+      status: 'Fallback',
+      statusCode: 'Fallback rerouted (429)',
+      latency: '1,380ms',
+      origin: 'EECS-189 Machine Learning',
+      studentHash: 'usr_anon_67bb1',
+      prompt: 'Synthesize the cross-lecture derivation between SVM dual formulation and the Kernel Trick.',
+      tokens: '1,240 tokens',
+      naiveCost: '$0.02480',
+      billedCost: '$0.02610 (Fallback API)',
+      confScore: '0.988',
+      dispatchedNode: 'Failover cluster (us-east-1)',
+      matchMetric: 'Target: Primary cloud -> Failed (HTTP 429)',
+      policyDirective: 'POLICY_HIGH_AVAILABILITY_FALLBACK',
+      traceId: 'trace_33bb90214a601',
+      ingressNode: 'edge-01.ingress.zuri.internal',
+      cacheKey: 'sha256:88fa2b1009...',
+      alternatives: [
+        { label: 'Tier 0 Rule cache', val: 'Miss (complex multi-doc synthesis)' },
+        { label: 'Tier 1 Semantic cache', val: 'Miss' },
+        { label: 'Tier 2 Local accelerator', val: 'Capacity exceeded' },
+        { label: 'Tier 3 Primary cloud', val: 'Failed (HTTP 429 rate limit)' },
+        { label: 'Tier 4 Standby cloud', val: 'Dispatched — Selected', isSelected: true },
+      ],
+      waterfall: [
+        { label: 'Ingress Envoy gateway', val: '2.1ms', pct: '1%', color: 'var(--ops-border-strong)' },
+        { label: 'Embedding & multi-doc retrieval', val: '124.0ms', pct: '9%', color: 'var(--ops-accent)' },
+        { label: 'Primary cloud attempt (429)', val: '180.0ms', pct: '13%', color: 'var(--ops-warn)' },
+        { label: 'Failover cloud inference', val: '1,060.0ms', pct: '76%', color: 'var(--ops-crit)' },
+        { label: 'Egress verification', val: '13.9ms', pct: '1%', color: 'var(--ops-border-strong)' },
+      ],
+    },
+  ];
+
+  const filteredDecisions = decisionDataset.filter((item) => {
+    if (tierFilter !== 'ALL' && !item.tierLevel.includes(tierFilter)) return false;
+    if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (
+        item.reqId.toLowerCase().includes(q) ||
+        item.prompt.toLowerCase().includes(q) ||
+        item.classification.toLowerCase().includes(q) ||
+        item.origin.toLowerCase().includes(q)
+      );
+    }
+    return true;
   });
 
-  return (
-    <div className="flex flex-col w-full min-h-screen bg-surface-container-lowest">
-      {/* 1. OPERATIONS CONTEXT HEADER */}
-      <section className="flex flex-col border-b border-outline-variant/30 bg-surface-container-lowest px-6 py-4">
-        {/* Breadcrumb & Status Pips */}
-        <div className="flex items-center justify-between pb-3">
-          <div className="flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant/80 tracking-widest uppercase">
-            <span>OPERATIONS</span>
-            <span className="text-outline-variant">//</span>
-            <span>AI INFRASTRUCTURE &amp; ROUTING ENGINE</span>
-            <span className="text-outline-variant">//</span>
-            <span className="text-primary font-semibold">ROUTING DECISION LOG</span>
-          </div>
-          {/* Live Stream Indicator & Telemetry Stats */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 font-label-sm text-label-sm text-on-surface">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-              <span className="text-on-surface-variant">Active Mesh:</span>
-              <span className="text-primary font-medium">Envoy v1.29</span>
-            </div>
-            <div className="hidden xl:flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 font-label-sm text-label-sm text-on-surface-variant">
-              <span>Window:</span>
-              <span className="text-on-surface font-medium">Real-time Ingress</span>
-            </div>
-            <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 font-label-sm text-label-sm text-on-surface-variant">
-              <span>Intercept Ratio:</span>
-              <span className="text-primary font-medium">68.4% T0–T1</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 font-label-sm text-label-sm text-on-surface-variant">
-              <span>Decisions 24h:</span>
-              <span className="font-code-md text-code-md text-on-surface font-semibold">1,642,890</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Title & Action Bar */}
-        <div className="flex flex-wrap items-end justify-between gap-4 pt-1">
-          <div className="max-w-3xl">
-            <div className="flex items-center gap-3">
-              <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight font-semibold">
-                AI Routing Decision Log
-              </h1>
-              <span className="px-2 py-0.5 rounded bg-primary/10 border border-primary/40 font-label-sm text-label-sm text-primary uppercase font-semibold">
-                v2.4 Deterministic Engine
-              </span>
-            </div>
-            <p className="font-body-md text-body-md text-on-surface-variant mt-1">
-              Deterministic inspection of real-time request classification, tiered dispatch rationale, semantic cache interception, and provider failovers across the Lexi inference mesh.
-            </p>
-          </div>
-
-          {/* Controls Ribbon */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="inline-flex rounded border border-outline-variant/40 bg-surface-container-low p-0.5">
-              {['15m', '1h', '24h', '7d'].map((tf) => (
-                <button
-                  key={tf}
-                  type="button"
-                  onClick={() => setSelectedTimeframe(tf)}
-                  className={`px-2.5 py-1 text-label-sm font-label-sm transition-colors rounded cursor-pointer ${
-                    selectedTimeframe === tf
-                      ? 'bg-surface-container-high text-primary font-semibold shadow-sm'
-                      : 'text-on-surface-variant hover:text-on-surface'
-                  }`}
-                >
-                  {tf}
-                </button>
-              ))}
-            </div>
-
+  const columns: Column<DecisionRecord>[] = [
+    {
+      header: 'Request ID and time',
+      isTitle: true,
+      accessor: (row) => (
+        <div className="flex flex-col py-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-body-sm font-semibold text-ops-text">
+              {row.reqId}
+            </span>
             <button
               type="button"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`flex items-center gap-1.5 h-8 px-3 rounded border border-outline-variant/40 font-label-sm text-label-sm transition-colors cursor-pointer ${
-                autoRefresh
-                  ? 'bg-surface-container-low text-on-surface border-outline-variant'
-                  : 'bg-surface-container-lowest text-outline opacity-60'
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopy(row.id, row.reqId);
+              }}
+              className="p-1 rounded text-ops-text-muted hover:text-ops-text transition-colors cursor-pointer"
+              title="Copy request ID"
+            >
+              {copiedId === row.id ? (
+                <Check className="w-3.5 h-3.5 text-ops-ok" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+          <span className="font-mono text-caption text-ops-text-muted">
+            {row.time}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Intent classification',
+      accessor: (row) => (
+        <div className="flex flex-col max-w-xs">
+          <span className="font-medium text-body-sm text-ops-text">
+            {row.classification}
+          </span>
+          <p className="text-caption text-ops-text-muted truncate">
+            {row.prompt}
+          </p>
+        </div>
+      ),
+    },
+    {
+      header: 'Assigned tier',
+      isKeyField: true,
+      accessor: (row) => (
+        <span
+          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-caption font-medium select-none ${
+            row.tierLevel === 'T0' || row.tierLevel === 'T1'
+              ? 'bg-ops-ok/15 text-ops-ok'
+              : row.tierLevel === 'T2'
+              ? 'bg-[#60a5fa]/15 text-[#60a5fa]'
+              : 'bg-ops-warn/15 text-ops-warn'
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              row.tierLevel === 'T0' || row.tierLevel === 'T1'
+                ? 'bg-ops-ok'
+                : row.tierLevel === 'T2'
+                ? 'bg-[#60a5fa]'
+                : 'bg-ops-warn'
+            }`}
+          />
+          {row.tier}
+        </span>
+      ),
+    },
+    {
+      header: 'Dispatched engine',
+      accessor: (row) => (
+        <span className="font-mono text-caption text-ops-text-muted">
+          {row.model}
+        </span>
+      ),
+    },
+    {
+      header: 'Latency',
+      numeric: true,
+      isKeyField: true,
+      accessor: (row) => (
+        <div className="flex flex-col items-end">
+          <span className="font-mono text-body-sm text-ops-text tabular-nums font-medium">
+            {row.latency}
+          </span>
+          <span className="text-caption text-ops-ok font-mono tabular-nums">
+            {row.billedCost}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Status',
+      accessor: (row) => (
+        <span
+          className={`px-2 py-0.5 rounded-full text-caption font-medium select-none ${
+            row.status === 'Cache hit'
+              ? 'bg-ops-ok/15 text-ops-ok'
+              : row.status === 'Fallback'
+              ? 'bg-ops-warn/15 text-ops-warn'
+              : 'bg-ops-panel-raised text-ops-text'
+          }`}
+        >
+          {row.status}
+        </span>
+      ),
+    },
+    {
+      header: 'Action',
+      accessor: (row) => (
+        <button
+          type="button"
+          onClick={() => setSelectedTrace(row)}
+          className="px-2.5 py-1 rounded-sm text-caption font-medium text-ops-accent hover:bg-ops-panel-raised transition-colors cursor-pointer"
+        >
+          Inspect trace
+        </button>
+      ),
+    },
+  ];
+
+  return (
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-[1280px] mx-auto text-ops-text">
+      {/* Dev-only Testing States Harness */}
+      {showHarness && (
+        <aside
+          aria-label="Testing states harness"
+          className="p-2.5 rounded-sm bg-ops-panel border border-ops-border text-caption flex flex-wrap items-center justify-between gap-2"
+        >
+          <div className="flex items-center gap-1.5 font-medium text-ops-text">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-ops-accent" aria-hidden="true" />
+            <span>Routing states</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setHarnessState('default')}
+              className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                harnessState === 'default'
+                  ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                  : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
               }`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full bg-primary ${autoRefresh ? 'animate-ping' : ''}`}></span>
-              <span>{autoRefresh ? 'Auto-refresh 5s' : 'Paused'}</span>
+              Default
             </button>
-
             <button
               type="button"
-              className="flex items-center gap-1.5 h-8 px-3 rounded bg-surface-container-low border border-outline-variant/40 text-on-surface-variant hover:text-on-surface hover:border-outline transition-colors font-label-sm text-label-sm cursor-pointer"
+              onClick={() => setHarnessState('loading')}
+              className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                harnessState === 'loading'
+                  ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                  : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+              }`}
             >
-              <Icon className="text-[15px]">download</Icon>
-              <span>Export JSONL</span>
+              Loading
             </button>
-
             <button
               type="button"
-              className="flex items-center gap-1.5 h-8 px-3 rounded bg-primary text-on-primary hover:bg-primary-container transition-colors font-label-sm text-label-sm font-bold uppercase tracking-wider cursor-pointer"
+              onClick={() => setHarnessState('empty')}
+              className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                harnessState === 'empty'
+                  ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                  : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+              }`}
             >
-              <Icon className="text-[15px]">play_arrow</Icon>
-              <span>Simulate Route</span>
+              Empty
+            </button>
+            <button
+              type="button"
+              onClick={() => setHarnessState('error')}
+              className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                harnessState === 'error'
+                  ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                  : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+              }`}
+            >
+              Error
             </button>
           </div>
+        </aside>
+      )}
+
+      {/* Header section (List template: h1 Geist 600, one-line description, right action) */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-ops-border/60">
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-semibold text-ops-text tracking-tight font-sans">
+            Routing decision log
+          </h1>
+          <p className="text-body-sm text-ops-text-muted mt-1">
+            Real-time inference dispatch trace and tier arbitration records.
+          </p>
         </div>
-      </section>
 
-      {/* 2. SUMMARY KPI RIBBON (Reusing KpiTile) */}
-      <section className="p-6 bg-surface-container-lowest border-b border-outline-variant/30">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <KpiTile
-            icon="alt_route"
-            label="Classified Ingress"
-            progressWidth="100%"
-            subtext={
-              <>
-                Current Throughput: <span className="text-on-surface font-semibold">2,380 req/s</span>
-              </>
-            }
-            trend="100% evaluated"
-            trendDirection="up"
-            value="1,642,890"
-          />
-          <KpiTile
-            icon="cached"
-            label="Intercepted / Cached"
-            progressWidth="62.8%"
-            subtext={
-              <>
-                Zero Frontier LLM Cost: <span className="text-primary font-semibold">+$1,842.20/day</span>
-              </>
-            }
-            trend="62.8% T0/T1"
-            trendDirection="up"
-            value="1,031,735"
-          />
-          <KpiTile
-            icon="memory"
-            label="Edge / Distilled Tier 2"
-            progressWidth="22.4%"
-            subtext={
-              <>
-                Triton Cluster Mean Latency: <span className="text-tertiary font-semibold">110ms</span>
-              </>
-            }
-            trend="22.4% local"
-            trendDirection="neutral"
-            value="368,000"
-          />
-          <KpiTile
-            icon="hub"
-            label="Frontier Tier 3/4 Routed"
-            progressWidth="14.8%"
-            subtext={
-              <>
-                Fallback Reroutes: <span className="text-secondary font-semibold">674 events (0.041%)</span>
-              </>
-            }
-            trend="14.8% monitored"
-            trendDirection="down"
-            value="243,155"
-          />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setIsRefreshing(true);
+              setTimeout(() => setIsRefreshing(false), 500);
+            }}
+            isLoading={isRefreshing}
+            className="w-full sm:w-auto h-11 sm:h-10 text-body-sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Live sweep
+          </Button>
         </div>
-      </section>
+      </header>
 
-      {/* 3. OPERATIONAL FILTER BAR */}
-      <section className="border-b border-outline-variant/30 bg-surface-container-lowest p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-3 items-center">
-          {/* Search */}
-          <div className="xl:col-span-4 relative">
-            <Icon className="absolute left-2.5 top-2 text-[16px] text-outline">search</Icon>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search request ID (req_9c14a8...), trace, prompt or course..."
-              className="w-full h-8 pl-8 pr-12 rounded bg-surface-container-low border border-outline-variant/40 font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:outline-none focus:border-primary transition-colors"
-            />
-            <kbd className="absolute right-2 top-1.5 px-1 py-0.5 rounded bg-surface-container-high border border-outline-variant/40 font-label-sm text-[9px] text-on-surface-variant">
-              ⌘F
-            </kbd>
-          </div>
+      {/* State: Error */}
+      {harnessState === 'error' && (
+        <Alert
+          variant="error"
+          title="Trace stream disconnected"
+          description="The routing decision stream is unavailable. Check the connection and try again."
+          action={<Button variant="secondary" onClick={() => setHarnessState('default')}>Try again</Button>}
+        />
+      )}
 
-          {/* Timeframe dropdown */}
-          <div className="xl:col-span-2 relative">
-            <div className="flex items-center justify-between h-8 px-2.5 rounded bg-surface-container-low border border-outline-variant/40 text-on-surface text-body-sm font-body-sm cursor-pointer hover:border-outline">
-              <div className="flex items-center gap-1.5 truncate">
-                <Icon className="text-[16px] text-outline">calendar_today</Icon>
-                <span className="truncate">14:30 – 15:30 UTC</span>
+      {/* State: Loading */}
+      {harnessState === 'loading' && (
+        <div className="flex flex-col gap-4" aria-busy="true">
+          <Skeleton className="h-12 rounded-md bg-ops-panel" />
+          <Skeleton className="h-96 rounded-md bg-ops-panel" />
+        </div>
+      )}
+
+      {/* State: Empty */}
+      {harnessState === 'empty' && (
+        <EmptyState
+          icon={Split}
+          title="No routing records found"
+          description="No recent decisions matched your current filters."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearchQuery('');
+                setTierFilter('ALL');
+                setStatusFilter('ALL');
+                setHarnessState('default');
+              }}
+            >
+              Reset filters
+            </Button>
+          }
+        />
+      )}
+
+      {/* State: Default */}
+      {harnessState === 'default' && (
+        <>
+          {/* Filters Row (List template requirement) */}
+          <section className="bg-ops-panel rounded-md border border-ops-border p-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[260px]">
+              {/* Search input */}
+              <div className="relative flex items-center bg-ops-panel-raised px-3 py-1.5 rounded-sm border border-ops-border flex-1 max-w-md">
+                <Search className="w-4 h-4 text-ops-text-muted mr-2 shrink-0" aria-hidden="true" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Filter by Req ID, prompt, intent..."
+                  className="bg-transparent text-body-sm text-ops-text placeholder:text-ops-text-muted focus:outline-none w-full"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="text-ops-text-muted hover:text-ops-text"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-              <Icon className="text-[14px] text-outline">expand_more</Icon>
+
+              {/* Tier Filter */}
+              <select
+                value={tierFilter}
+                onChange={(e) => setTierFilter(e.target.value)}
+                className="bg-ops-panel-raised text-body-sm text-ops-text px-3 py-1.5 rounded-sm border border-ops-border focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All tiers</option>
+                <option value="T0">Tier 0 Deterministic</option>
+                <option value="T1">Tier 1 Semantic cache</option>
+                <option value="T2">Tier 2 Local accelerator</option>
+                <option value="T4">Tier 4 Frontier cloud</option>
+              </select>
+
+              {/* Status Filter */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-ops-panel-raised text-body-sm text-ops-text px-3 py-1.5 rounded-sm border border-ops-border focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All statuses</option>
+                <option value="Cache hit">Cache hit</option>
+                <option value="Dispatched">Dispatched</option>
+                <option value="Fallback">Fallback</option>
+              </select>
             </div>
-          </div>
 
-          {/* Tier dropdown */}
-          <div className="xl:col-span-2">
-            <select className="w-full h-8 px-2 rounded bg-surface-container-low border border-outline-variant/40 text-on-surface text-body-sm font-body-sm focus:outline-none focus:border-primary">
-              <option>Tier: All Tiers (T0–T4)</option>
-              <option>Tier 0 Rule Index</option>
-              <option>Tier 1 Semantic Cache</option>
-              <option>Tier 2 Triton Edge 7B</option>
-              <option>Tier 3 Mid-Frontier</option>
-              <option>Tier 4 Deep Multi-Doc</option>
-            </select>
-          </div>
-
-          {/* Classification dropdown */}
-          <div className="xl:col-span-2">
-            <select className="w-full h-8 px-2 rounded bg-surface-container-low border border-outline-variant/40 text-on-surface text-body-sm font-body-sm focus:outline-none focus:border-primary">
-              <option>Class: All Classifications</option>
-              <option>Syllabus Factoid</option>
-              <option>Assignment Q&amp;A</option>
-              <option>Rubric Evaluation</option>
-              <option>Multi-Doc Synthesis</option>
-              <option>Code Debugging</option>
-              <option>Course Policy</option>
-            </select>
-          </div>
-
-          {/* Model dropdown */}
-          <div className="xl:col-span-2">
-            <select className="w-full h-8 px-2 rounded bg-surface-container-low border border-outline-variant/40 text-on-surface text-body-sm font-body-sm focus:outline-none focus:border-primary">
-              <option>Model: All Providers</option>
-              <option>Zero-Compute (T0/T1)</option>
-              <option>Qdrant NVMe Cache</option>
-              <option>Triton Mistral-7B</option>
-              <option>Claude 3.5 Haiku</option>
-              <option>Claude 3.5 Sonnet</option>
-              <option>GPT-4o (Fallback)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Active Filter Summary */}
-        <div className="flex items-center justify-between pt-2 mt-2 border-t border-outline-variant/20 font-label-sm text-label-sm text-on-surface-variant">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              Displaying <strong className="text-on-surface">{filteredRows.length}</strong> of{' '}
-              <strong className="text-on-surface">14,820</strong> logged decisions in circular buffer
+            <span className="font-mono text-caption text-ops-text-muted">
+              {filteredDecisions.length} records
             </span>
-            <span className="text-outline-variant">•</span>
-            <span className="text-outline">Buffer retention: 60 minutes rolling</span>
-          </div>
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="text-primary hover:underline font-label-sm text-label-sm cursor-pointer"
-            >
-              Reset Filters
-            </button>
-          )}
-        </div>
-      </section>
+          </section>
 
-      {/* 4. MASTER-DETAIL TWO-COLUMN VIEW */}
-      <section className="grid grid-cols-1 xl:grid-cols-12 w-full min-h-[calc(100vh-270px)] bg-surface-container-lowest">
-        {/* LEFT PANEL: Decision Log Master Table */}
-        <div className="xl:col-span-7 border-r border-outline-variant/30 flex flex-col bg-surface-container-low/50 overflow-x-auto">
-          {/* Table Header */}
-          <div className="grid grid-cols-12 gap-2 h-9 px-4 items-center bg-surface-container-low border-b border-outline-variant/40 font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant select-none sticky top-0 z-20">
-            <div className="col-span-2">Request ID</div>
-            <div className="col-span-1">Time</div>
-            <div className="col-span-2">Classification</div>
-            <div className="col-span-2">Tier &amp; Model</div>
-            <div className="col-span-3">Decision Reason</div>
-            <div className="col-span-1 text-center">Status</div>
-            <div className="col-span-1 text-right">Latency</div>
-          </div>
+          {/* Main List Table */}
+          <section className="bg-ops-panel rounded-md border border-ops-border overflow-hidden">
+            <DataTable
+              columns={columns}
+              data={filteredDecisions}
+              keyExtractor={(row) => row.id}
+              onRowClick={(row) => setSelectedTrace(row)}
+              className="border-0 rounded-none cursor-pointer"
+            />
 
-          {/* Table Body Rows */}
-          <div className="divide-y divide-outline-variant/25 font-body-sm text-body-sm flex-1">
-            {filteredRows.map((row) => {
-              const isSelected = row.reqId === selectedReqId;
-              return (
-                <div
-                  key={row.reqId}
-                  onClick={() => setSelectedReqId(row.reqId)}
-                  className={`decision-row cursor-pointer grid grid-cols-12 gap-2 px-4 py-2.5 items-center transition-colors ${
-                    isSelected
-                      ? 'bg-surface-container-high border-l-2 border-primary text-on-surface'
-                      : 'hover:bg-surface-container text-on-surface'
-                  }`}
+            {/* Pagination Controls (List template requirement) */}
+            <div className="p-3.5 border-t border-ops-border/60 flex items-center justify-between text-caption text-ops-text-muted">
+              <span>Showing 1 to {filteredDecisions.length} of {filteredDecisions.length} entries</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={page === 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="px-2.5 py-1 rounded-sm border border-ops-border bg-ops-panel-raised text-ops-text disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
                 >
-                  <div className="col-span-2 flex items-center gap-1 font-code-md text-code-md font-semibold text-primary">
-                    <Icon className="text-[13px] text-outline">terminal</Icon>
-                    <span>{row.reqId}</span>
-                  </div>
-                  <div className="col-span-1 font-code-md text-code-md text-on-surface-variant">{row.time}</div>
-                  <div className="col-span-2">
-                    <span className="px-1.5 py-0.5 rounded bg-surface-container border border-outline-variant/40 font-label-sm text-[10px] text-on-surface">
-                      {row.classification}
-                    </span>
-                  </div>
-                  <div className="col-span-2 flex flex-col">
-                    <span className={`font-label-sm text-label-sm font-semibold ${row.tierColor}`}>{row.tier}</span>
-                    <span className="font-code-md text-[11px] text-on-surface-variant truncate">{row.model}</span>
-                  </div>
-                  <div className="col-span-3 text-on-surface-variant text-[12px] leading-tight truncate">
-                    {row.reason}
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    <span className={`px-1.5 py-0.5 rounded font-label-sm text-[9px] font-bold ${row.statusBadgeClass}`}>
-                      {row.status}
-                    </span>
-                  </div>
-                  <div className={`col-span-1 text-right font-code-md text-code-md font-medium ${row.latencyColor}`}>
-                    {row.latency}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Pagination & Stream Controller Footer */}
-          <div className="mt-auto border-t border-outline-variant/30 bg-surface-container-low px-4 py-2 flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
-            <div className="flex items-center gap-2">
-              <span>Buffer Page 1 of 185</span>
-              <span className="text-outline-variant">|</span>
-              <span>Window size: 50 / batch</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                disabled
-                type="button"
-                className="px-2 py-1 rounded bg-surface-container border border-outline-variant/40 hover:bg-surface-container-high text-on-surface disabled:opacity-40"
-              >
-                PREV
-              </button>
-              <button
-                type="button"
-                className="px-2 py-1 rounded bg-surface-container border border-outline-variant/40 hover:bg-surface-container-high text-on-surface"
-              >
-                NEXT
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT PANEL: Detailed Inspection Drawer */}
-        <div className="xl:col-span-5 flex flex-col bg-surface-container-lowest border-l border-outline-variant/30 overflow-y-auto">
-          {/* Drawer Sticky Subheader */}
-          <div className="sticky top-0 z-20 flex items-center justify-between px-6 py-3 bg-surface-container-low border-b border-outline-variant/30">
-            <div className="flex items-center gap-2">
-              <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-                Routing Inspection //
-              </span>
-              <span className="font-code-md text-code-md text-primary font-bold">{selectedData.reqId}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className={`px-2 py-0.5 rounded font-label-sm text-label-sm font-semibold ${selectedData.statusBadgeClass}`}>
-                {selectedData.statusCode}
-              </span>
-              <button
-                type="button"
-                title="Copy JSON Log"
-                className="p-1 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface cursor-pointer"
-              >
-                <Icon className="text-[16px]">content_copy</Icon>
-              </button>
-            </div>
-          </div>
-
-          {/* Drawer Body Content */}
-          <div className="p-6 space-y-6 text-body-md font-body-md">
-            {/* Section 1: Ingress Request Telemetry */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">
-                  1. Ingress Request Telemetry
-                </span>
-                <span className="font-code-md text-[11px] text-outline">FERPA COMPLIANT</span>
-              </div>
-              <div className="p-4 rounded bg-surface-container-low border border-outline-variant/30 space-y-2.5">
-                <div className="flex items-center justify-between text-body-sm font-body-sm">
-                  <span className="text-on-surface-variant">Client Origin:</span>
-                  <span className="font-code-md text-code-md text-on-surface">{selectedData.origin}</span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm">
-                  <span className="text-on-surface-variant">Student Identity Hash:</span>
-                  <span className="font-code-md text-code-md text-outline">{selectedData.studentHash}</span>
-                </div>
-                <div className="pt-1">
-                  <span className="text-body-sm font-body-sm text-on-surface-variant block mb-1">Ingress Prompt:</span>
-                  <div className="p-2 rounded bg-surface-container-lowest border border-outline-variant/25 font-body-sm text-body-sm text-on-surface italic leading-relaxed">
-                    {selectedData.prompt}
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-outline-variant/20 font-label-sm text-label-sm">
-                  <div>
-                    <span className="text-on-surface-variant block text-[10px]">Ingress Tokens</span>
-                    <span className="font-code-md text-code-md text-on-surface font-semibold">{selectedData.tokens}</span>
-                  </div>
-                  <div>
-                    <span className="text-on-surface-variant block text-[10px]">Naive Cost</span>
-                    <span className="font-code-md text-code-md text-secondary">{selectedData.naiveCost}</span>
-                  </div>
-                  <div>
-                    <span className="text-on-surface-variant block text-[10px]">Billed Cost</span>
-                    <span className="font-code-md text-code-md text-primary font-semibold">{selectedData.billedCost}</span>
-                  </div>
-                </div>
+                  <ChevronLeft className="w-3.5 h-3.5 inline mr-1" />
+                  Previous
+                </button>
+                <span className="px-2 font-mono text-ops-text">Page {page}</span>
+                <button
+                  type="button"
+                  disabled={true}
+                  className="px-2.5 py-1 rounded-sm border border-ops-border bg-ops-panel-raised text-ops-text disabled:opacity-40 cursor-not-allowed"
+                >
+                  Next
+                  <ChevronRight className="w-3.5 h-3.5 inline ml-1" />
+                </button>
               </div>
             </div>
+          </section>
 
-            {/* Section 2: Classification Engine Analysis */}
-            <div className="space-y-2">
-              <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">
-                2. Classification Engine Analysis
-              </span>
-              <div className="p-4 rounded bg-surface-container-low border border-outline-variant/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-on-surface-variant text-body-sm font-body-sm">Primary Detected Intent:</span>
-                  <span className="px-2 py-0.5 rounded bg-surface-container font-label-sm text-label-sm text-on-surface font-semibold">
-                    {selectedData.intent}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm">
-                  <span className="text-on-surface-variant">Intent Confidence:</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-1.5 rounded-full bg-surface-container-high overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: selectedData.confWidth }}></div>
+          {/* Trace Detail Inspection Slide-over / Modal */}
+          {selectedTrace && (
+            <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+              <div
+                className="w-full max-w-2xl bg-ops-panel border border-ops-border rounded-md shadow-2xl p-5 max-h-[90vh] overflow-y-auto flex flex-col gap-4 text-ops-text"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="trace-dialog-title"
+              >
+                {/* Modal Header */}
+                <div className="flex items-start justify-between pb-3 border-b border-ops-border/60">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <h2 id="trace-dialog-title" className="text-body-sm font-semibold text-ops-text">
+                        Trace inspection: {selectedTrace.reqId}
+                      </h2>
+                      <span className="font-mono text-caption text-ops-text-muted">
+                        {selectedTrace.time}
+                      </span>
                     </div>
-                    <span className="font-code-md text-code-md text-primary font-bold">{selectedData.confScore}</span>
+                    <span className="font-mono text-caption text-ops-accent">
+                      {selectedTrace.traceId} • {selectedTrace.ingressNode}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTrace(null)}
+                    className="p-1 rounded-xs hover:bg-ops-panel-raised text-ops-text-muted hover:text-ops-text"
+                    aria-label="Close trace inspection"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Prompt context */}
+                <div className="p-3 rounded-sm bg-ops-panel-raised border border-ops-border/60 flex flex-col gap-1">
+                  <span className="text-caption text-ops-text-muted">Original request prompt</span>
+                  <p className="text-body-sm text-ops-text font-serif italic">
+                    “{selectedTrace.prompt}”
+                  </p>
+                  <div className="flex items-center gap-4 text-caption text-ops-text-muted pt-1">
+                    <span>Course: {selectedTrace.origin}</span>
+                    <span>Tokens: {selectedTrace.tokens}</span>
+                    <span>Billed: {selectedTrace.billedCost}</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm">
-                  <span className="text-on-surface-variant">Reasoning Complexity:</span>
-                  <span className="font-code-md text-code-md text-on-surface">{selectedData.complexity}</span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm">
-                  <span className="text-on-surface-variant">Required Document Depth:</span>
-                  <span className="font-code-md text-code-md text-on-surface-variant">{selectedData.docDepth}</span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm">
-                  <span className="text-on-surface-variant">Classifier Latency:</span>
-                  <span className="font-code-md text-code-md text-tertiary">{selectedData.classifierLatency}</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Section 3: Routing Tier & Path Selection */}
-            <div className="space-y-2">
-              <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">
-                3. Routing Tier &amp; Path Selection
-              </span>
-              <div className="p-4 rounded bg-surface-container-low border border-outline-variant/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-on-surface-variant text-body-sm font-body-sm">Assigned Tier:</span>
-                  <span className={`px-2 py-0.5 rounded font-label-sm text-label-sm font-bold ${selectedData.assignedTierClass}`}>
-                    {selectedData.assignedTier}
+                {/* Waterfall latencies */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-caption font-semibold text-ops-text">
+                    Latency breakdown ({selectedTrace.latency} total)
                   </span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm">
-                  <span className="text-on-surface-variant">Dispatched Node:</span>
-                  <span className="font-code-md text-code-md text-on-surface">{selectedData.dispatchedNode}</span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm">
-                  <span className="text-on-surface-variant">Cosine Similarity:</span>
-                  <span className="font-code-md text-code-md text-primary font-bold">{selectedData.matchMetric}</span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm">
-                  <span className="text-on-surface-variant">Interception State:</span>
-                  <span className="font-label-sm text-label-sm text-primary font-semibold">{selectedData.interception}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 4: Decision Reason & Policy Engine */}
-            <div className="space-y-2">
-              <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">
-                4. Decision Reason &amp; Policy Engine
-              </span>
-              <div className="p-4 rounded bg-surface-container-low border border-outline-variant/30 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-label-sm text-label-sm text-on-surface-variant">Active Policy Directive:</span>
-                  <span className="font-code-md text-[11px] px-1.5 py-0.5 rounded bg-surface-container text-tertiary">
-                    {selectedData.policyDirective}
-                  </span>
-                </div>
-                <div className="p-2.5 rounded bg-surface-container-lowest border-l-2 border-primary font-body-sm text-body-sm text-on-surface leading-relaxed">
-                  {selectedData.reasonText}
-                </div>
-                {/* Alternative Path Evaluation Tree */}
-                <div className="pt-1">
-                  <span className="font-label-sm text-[10px] text-on-surface-variant uppercase tracking-wider block mb-1.5">
-                    Evaluated Candidate Alternatives:
-                  </span>
-                  <div className="space-y-1 font-code-md text-[11px]">
-                    {selectedData.alternatives.map((alt, idx) => (
+                  <div className="w-full h-3 rounded-full bg-ops-panel-raised overflow-hidden flex border border-ops-border">
+                    {selectedTrace.waterfall.map((step, idx) => (
                       <div
                         key={idx}
-                        className={`flex items-center justify-between px-2 py-1 rounded ${
-                          alt.val.includes('SELECTED')
-                            ? 'bg-primary/10 border border-primary/20'
-                            : 'bg-surface-container-lowest'
-                        }`}
-                      >
-                        <span className="text-on-surface-variant">{alt.label}</span>
-                        <span className={alt.cls}>{alt.val}</span>
+                        style={{ width: step.pct, backgroundColor: step.color }}
+                        className="h-full"
+                        title={`${step.label}: ${step.val}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-caption">
+                    {selectedTrace.waterfall.map((step, idx) => (
+                      <div key={idx} className="flex flex-col">
+                        <span className="text-ops-text-muted truncate">{step.label}</span>
+                        <span className="text-ops-text font-semibold">{step.val}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Section 5: Resilience & Circuit Breaker */}
-            <div className="space-y-2">
-              <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">
-                5. Resilience &amp; Circuit Breaker
-              </span>
-              <div className="p-4 rounded bg-surface-container-low border border-outline-variant/30 space-y-2 text-body-sm font-body-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-on-surface-variant">Fallback Triggered:</span>
-                  <span className={`font-code-md text-code-md ${selectedData.fallbackTriggeredClass}`}>
-                    {selectedData.fallbackTriggered}
+                {/* Evaluated alternatives */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-caption font-semibold text-ops-text">
+                    Tier arbitration and alternatives evaluated
                   </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-on-surface-variant">Circuit Breaker Status:</span>
-                  <span className="flex items-center gap-1.5 font-label-sm text-label-sm text-primary">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        selectedData.fallbackTriggered.startsWith('Yes') ? 'bg-secondary' : 'bg-primary'
-                      }`}
-                    ></span>
-                    {selectedData.circuitStatus}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-on-surface-variant">Standby Failover Pool:</span>
-                  <span className="font-code-md text-code-md text-on-surface-variant">{selectedData.standbyPool}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 6: Latency Breakdown Waterfall */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">
-                  6. Latency Waterfall
-                </span>
-                <span className="font-code-md text-code-md text-primary font-bold">{selectedData.totalLatency}</span>
-              </div>
-              <div className="p-4 rounded bg-surface-container-low border border-outline-variant/30 space-y-2 font-code-md text-[11px]">
-                {selectedData.waterfall.map((wf, idx) => (
-                  <div key={idx}>
-                    <div className="flex justify-between text-on-surface-variant mb-1">
-                      <span>{wf.label}</span>
-                      <span className="text-on-surface">{wf.val}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-surface-container rounded overflow-hidden">
-                      <div className={`h-full ${wf.color}`} style={{ width: wf.pct }}></div>
-                    </div>
+                  <div className="rounded-sm border border-ops-border overflow-hidden divide-y divide-ops-border/60">
+                    {selectedTrace.alternatives.map((alt, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-2.5 flex items-center justify-between text-caption ${
+                          alt.isSelected ? 'bg-ops-accent/10 font-medium' : 'bg-ops-panel-raised'
+                        }`}
+                      >
+                        <span className={alt.isSelected ? 'text-ops-accent' : 'text-ops-text-muted'}>
+                          {alt.label}
+                        </span>
+                        <span className={`font-mono ${alt.isSelected ? 'text-ops-ok font-semibold' : 'text-ops-text-muted'}`}>
+                          {alt.val}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            {/* Section 7: Technical Metadata & Audit */}
-            <div className="space-y-2 pb-6">
-              <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">
-                7. Cryptographic Audit &amp; Metadata
-              </span>
-              <div className="p-4 rounded bg-surface-container-low border border-outline-variant/30 space-y-1.5 font-code-md text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Trace ID:</span>
-                  <span className="text-on-surface select-all">{selectedData.traceId}</span>
+                {/* Policy & reasoning */}
+                <div className="p-3 rounded-sm bg-ops-panel-raised border border-ops-border flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-caption">
+                    <span className="text-ops-text-muted">Policy directive:</span>
+                    <span className="font-mono text-ops-accent font-semibold">{selectedTrace.policyDirective}</span>
+                  </div>
+                  <p className="text-caption text-ops-text-muted mt-1 leading-relaxed">
+                    {selectedTrace.reason}
+                  </p>
+                  <div className="text-caption text-ops-ok pt-1 font-mono">
+                    {selectedTrace.matchMetric}
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Ingress Node:</span>
-                  <span className="text-on-surface">{selectedData.ingressNode}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Cache Key:</span>
-                  <span className="text-outline truncate max-w-[200px]" title={selectedData.cacheKey}>
-                    {selectedData.cacheKey}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Mesh Security:</span>
-                  <span className="text-primary font-medium">mTLS v1.3 // TLS_AES_256_GCM</span>
+
+                {/* Footer action */}
+                <div className="flex justify-end pt-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setSelectedTrace(null)}
+                  >
+                    Close inspection
+                  </Button>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          )}
+        </>
+      )}
     </div>
+  );
+}
+
+export default function OpsRoutingPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-caption text-ops-text-muted">Loading routing log...</div>}>
+      <OpsRoutingContent />
+    </Suspense>
   );
 }

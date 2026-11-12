@@ -1,12 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
-import { DevStateLens } from '@/components/ui/DevStateLens';
-import { KpiTile } from '@/components/ui/KpiTile';
-import { DataTable, Column } from '@/components/ui/DataTable';
+import React, { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import {
+  DataTable,
+  type Column,
+  Button,
+  Badge,
+  EmptyState,
+  Skeleton,
+  Alert,
+} from '@/components/ui';
+import {
+  TrendingUp,
+  TrendingDown,
+  Download,
+  SlidersHorizontal,
+  Activity,
+  FileSpreadsheet,
+  Database,
+  ArrowRight,
+} from 'lucide-react';
 
-interface CourseLedgerRow {
+export type AnalyticsState = 'default' | 'loading' | 'empty' | 'error';
+
+interface CourseQuizRow {
   code: string;
   name: string;
   department: string;
@@ -15,778 +33,516 @@ interface CourseLedgerRow {
   successRate: number;
   subThresholdPct: number;
   trend: string;
-  trendType: 'warning' | 'positive' | 'steady';
-  isRowLight?: boolean;
+  isPositive: boolean;
+  statusLabel: 'Exemplary' | 'Nominal' | 'Review Needed';
 }
 
-interface ConceptSignalRow {
-  title: string;
-  courseCode: string;
-  division: string;
-  attempts: number;
-  tutorialGroups?: number;
-  masteryPct: number;
-  statusLabel: string;
-  statusType: 'secondary-fixed' | 'surface-container' | 'primary-fixed';
-  dotColor: 'secondary' | 'primary';
-}
+const mockQuizBreakdown: CourseQuizRow[] = [
+  {
+    code: 'HIST-204',
+    name: 'Late Imperial Diplomacy (1870–1914)',
+    department: 'Faculty of History',
+    division: 'Humanities',
+    attempts: 890,
+    successRate: 86.4,
+    subThresholdPct: 13.6,
+    trend: '+4.8% on last week',
+    isPositive: true,
+    statusLabel: 'Exemplary',
+  },
+  {
+    code: 'LAW-105',
+    name: 'Constitutional Jurisprudence',
+    department: 'Faculty of Law',
+    division: 'Social Sciences',
+    attempts: 960,
+    successRate: 91.2,
+    subThresholdPct: 8.8,
+    trend: '+1.5% on last week',
+    isPositive: true,
+    statusLabel: 'Exemplary',
+  },
+  {
+    code: 'PHIL-101',
+    name: 'Formal Logic & Dialectic',
+    department: 'Faculty of Philosophy',
+    division: 'Humanities',
+    attempts: 1420,
+    successRate: 82.9,
+    subThresholdPct: 17.1,
+    trend: '+3.1% on last week',
+    isPositive: true,
+    statusLabel: 'Exemplary',
+  },
+  {
+    code: 'MATH-210',
+    name: 'Linear Algebra & Spectral Theory',
+    department: 'Mathematical Institute',
+    division: 'MPLS',
+    attempts: 1780,
+    successRate: 81.0,
+    subThresholdPct: 19.0,
+    trend: '+2.1% on last week',
+    isPositive: true,
+    statusLabel: 'Nominal',
+  },
+  {
+    code: 'BIO-410',
+    name: 'Cellular Signalling & Genomic Medicine',
+    department: 'Dept. of Biochemistry',
+    division: 'Medical Sciences',
+    attempts: 2110,
+    successRate: 72.8,
+    subThresholdPct: 27.2,
+    trend: 'Steady',
+    isPositive: true,
+    statusLabel: 'Nominal',
+  },
+  {
+    code: 'ENG-320',
+    name: 'Advanced Fluid Dynamics',
+    department: 'Dept. of Engineering Science',
+    division: 'MPLS',
+    attempts: 1240,
+    successRate: 61.5,
+    subThresholdPct: 38.5,
+    trend: '-3.2% on last week',
+    isPositive: false,
+    statusLabel: 'Review Needed',
+  },
+];
 
-export default function QuizPerformancePage() {
-  const [lensState, setLensState] = useState<'populated' | 'empty' | 'filtered-zero' | 'loading'>('populated');
-  const [activeDivisionTab, setActiveDivisionTab] = useState<string>('All Divisions');
-  const [activeRole, setActiveRole] = useState<string>('admin');
-  const [activeFilters, setActiveFilters] = useState<string[]>([
-    'Mode: Formative & Diagnostic',
-    'Threshold: Standard (<65% Review)',
-  ]);
+const mockWeeklyMastery = [
+  { week: 'Wk 1', label: 'Week 1', masteryRate: 71.2, attempts: 1240 },
+  { week: 'Wk 2', label: 'Week 2', masteryRate: 73.5, attempts: 1820 },
+  { week: 'Wk 3', label: 'Week 3', masteryRate: 75.1, attempts: 2410 },
+  { week: 'Wk 4', label: 'Week 4', masteryRate: 76.8, attempts: 3120 },
+  { week: 'Wk 5', label: 'Week 5', masteryRate: 79.2, attempts: 3840 },
+  { week: 'Wk 6', label: 'Week 6 (Midterm)', masteryRate: 81.4, attempts: 4620 },
+  { week: 'Wk 7', label: 'Week 7 (Current)', masteryRate: 78.4, attempts: 4180 },
+];
 
-  const removeFilter = (filterToRemove: string) => {
-    const updated = activeFilters.filter((f) => f !== filterToRemove);
-    setActiveFilters(updated);
-    if (updated.length === 0) {
-      setLensState('filtered-zero');
-    }
-  };
+function QuizPerformanceContent() {
+  const searchParams = useSearchParams();
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
 
-  const resetFilters = () => {
-    setActiveFilters([
-      'Mode: Formative & Diagnostic',
-      'Threshold: Standard (<65% Review)',
-    ]);
-    setLensState('populated');
-  };
+  const [state, setState] = useState<AnalyticsState>('default');
+  const [dateRange, setDateRange] = useState('Michaelmas Term 2024–25 (Wks 1–7)');
+  const [chartViewMode, setChartViewMode] = useState<'chart' | 'table'>('chart');
 
-  const courseLedgerData: CourseLedgerRow[] = [
+  const columns: Column<CourseQuizRow>[] = [
     {
-      code: 'ENG-320',
-      name: 'Advanced Fluid Dynamics',
-      department: 'Engineering Science',
-      division: 'MPLS',
-      attempts: 1240,
-      successRate: 61.5,
-      subThresholdPct: 38.5,
-      trend: '-3.2% Wk/Wk',
-      trendType: 'warning',
-    },
-    {
-      code: 'BIO-410',
-      name: 'Cellular Signalling & Genomic Medicine',
-      department: 'Biochemistry',
-      division: 'Medical Sciences',
-      attempts: 2110,
-      successRate: 72.8,
-      subThresholdPct: 27.2,
-      trend: 'Steady',
-      trendType: 'steady',
-      isRowLight: true,
-    },
-    {
-      code: 'MATH-210',
-      name: 'Linear Algebra & Spectral Theory',
-      department: 'Mathematical Institute',
-      division: 'MPLS',
-      attempts: 1780,
-      successRate: 81.0,
-      subThresholdPct: 19.0,
-      trend: '+2.1% Wk/Wk',
-      trendType: 'positive',
-    },
-    {
-      code: 'HIST-204',
-      name: 'Late Imperial Diplomacy (1870–1914)',
-      department: 'Faculty of History',
-      division: 'Humanities',
-      attempts: 890,
-      successRate: 86.4,
-      subThresholdPct: 13.6,
-      trend: '+4.5% Wk/Wk',
-      trendType: 'positive',
-      isRowLight: true,
-    },
-    {
-      code: 'LAW-105',
-      name: 'Constitutional Jurisprudence',
-      department: 'Faculty of Law',
-      division: 'Social Sciences',
-      attempts: 1450,
-      successRate: 88.2,
-      subThresholdPct: 11.8,
-      trend: 'Steady',
-      trendType: 'steady',
-    },
-  ];
-
-  const conceptSignalsData: ConceptSignalRow[] = [
-    {
-      title: 'Navier-Stokes Boundary Layer Discretization',
-      courseCode: 'ENG-320 (MPLS)',
-      division: 'MPLS',
-      attempts: 412,
-      tutorialGroups: 12,
-      masteryPct: 52.8,
-      statusLabel: 'Pedagogical Review Recommended',
-      statusType: 'secondary-fixed',
-      dotColor: 'secondary',
-    },
-    {
-      title: 'Mendelian Linkage Disequilibrium & Epistasis',
-      courseCode: 'BIO-410 (Medical Sciences)',
-      division: 'Medical Sciences',
-      attempts: 680,
-      masteryPct: 56.4,
-      statusLabel: 'Tutorial Discussion Flag',
-      statusType: 'secondary-fixed',
-      dotColor: 'secondary',
-    },
-    {
-      title: "Kant's Transcendental Deduction (Critique of Pure Reason)",
-      courseCode: 'PHIL-101 (Philosophy)',
-      division: 'Humanities',
-      attempts: 340,
-      masteryPct: 58.1,
-      statusLabel: 'Concept Clarity Signal',
-      statusType: 'secondary-fixed',
-      dotColor: 'secondary',
-    },
-    {
-      title: 'Eigenvalue Perturbation in Hermite Matrices',
-      courseCode: 'MATH-210 (Mathematical Institute)',
-      division: 'MPLS',
-      attempts: 520,
-      masteryPct: 59.2,
-      statusLabel: 'Problem Sheet Calibrated',
-      statusType: 'surface-container',
-      dotColor: 'primary',
-    },
-    {
-      title: 'Bismarckian Diplomatic Realignment (1871–1890)',
-      courseCode: 'HIST-204 (History)',
-      division: 'Humanities',
-      attempts: 610,
-      masteryPct: 63.5,
-      statusLabel: 'Optimal Monitoring',
-      statusType: 'primary-fixed',
-      dotColor: 'primary',
-    },
-  ];
-
-  const filteredCourseData = courseLedgerData.filter((row) => {
-    if (activeDivisionTab === 'All Divisions') return true;
-    if (activeDivisionTab === 'Humanities') return row.division === 'Humanities';
-    if (activeDivisionTab === 'MPLS') return row.division === 'MPLS';
-    if (activeDivisionTab === 'Medical') return row.division === 'Medical Sciences';
-    return true;
-  });
-
-  const columns: Column<CourseLedgerRow>[] = [
-    {
-      header: 'Course',
+      header: 'Course & curriculum',
+      isTitle: true,
       accessor: (row) => (
-        <div className="font-medium text-primary">
-          <div className="font-semibold">{row.code}</div>
-          <div className="text-[13px] text-on-surface-variant font-normal">{row.name}</div>
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-caption px-2 py-0.5 rounded-sm bg-surface-container font-semibold text-primary">
+              {row.code}
+            </span>
+            <span className="font-semibold text-on-surface text-body-sm truncate">
+              {row.name}
+            </span>
+          </div>
+          <span className="text-caption text-on-surface-variant truncate mt-0.5">
+            {row.department} &bull; {row.division}
+          </span>
         </div>
       ),
     },
     {
-      header: 'Department / Faculty',
+      header: 'Formative attempts',
+      numeric: true,
       accessor: (row) => (
-        <span className="text-on-surface">
-          {row.department} ({row.division})
+        <span className="tabular-nums text-on-surface text-body-sm">
+          {row.attempts.toLocaleString()}
         </span>
       ),
     },
     {
-      header: 'Attempts',
-      className: 'text-right',
-      accessor: (row) => <span className="font-medium text-ink-black">{row.attempts.toLocaleString()}</span>,
-    },
-    {
-      header: 'Success Rate (≥70%)',
+      header: 'Mastery rate',
+      numeric: true,
+      isKeyField: true,
       accessor: (row) => (
-        <div className="flex items-center gap-3">
-          <div className="w-28 bg-surface-container-highest rounded-full h-2 overflow-hidden">
-            <div
-              className={`h-full rounded-full ${
-                row.successRate < 70
-                  ? 'bg-secondary'
-                  : row.successRate < 80
-                  ? 'bg-primary-container'
-                  : 'bg-primary'
-              }`}
-              style={{ width: `${row.successRate}%` }}
-            ></div>
-          </div>
-          <span className="font-semibold text-ink-black">{row.successRate.toFixed(1)}%</span>
-        </div>
+        <span className="tabular-nums font-semibold text-primary text-body-sm">
+          {row.successRate.toFixed(1)}%
+        </span>
       ),
     },
     {
-      header: 'Sub-Threshold',
-      className: 'text-right',
-      accessor: (row) => <span className="font-medium text-secondary">{row.subThresholdPct.toFixed(1)}%</span>,
+      header: 'Sub-threshold rate',
+      numeric: true,
+      accessor: (row) => (
+        <span className="tabular-nums text-on-surface-variant text-body-sm">
+          {row.subThresholdPct.toFixed(1)}%
+        </span>
+      ),
     },
     {
-      header: 'Trend',
-      accessor: (row) => {
-        if (row.trendType === 'warning') {
-          return (
-            <span className="inline-flex items-center gap-1 font-label-caps text-[11px] px-2 py-0.5 rounded bg-error-container/50 text-error uppercase">
-              <Icon className="text-[12px]">warning</Icon>
-              {row.trend}
-            </span>
-          );
-        }
-        if (row.trendType === 'positive') {
-          return (
-            <span className="inline-flex items-center gap-1 font-label-caps text-[11px] px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed uppercase">
-              <Icon className="text-[12px]">trending_up</Icon>
-              {row.trend}
-            </span>
-          );
-        }
-        return (
-          <span className="inline-flex items-center gap-1 font-label-caps text-[11px] px-2 py-0.5 rounded bg-surface-container text-on-surface-variant uppercase">
-            {row.trend}
-          </span>
-        );
-      },
-    },
-    {
-      header: 'Action',
-      className: 'text-right',
-      accessor: () => (
-        <button
-          className="text-primary hover:text-primary-container font-semibold inline-flex items-center gap-0.5 cursor-pointer"
-          type="button"
+      header: 'Mastery rating',
+      isKeyField: true,
+      accessor: (row) => (
+        <Badge
+          variant={
+            row.statusLabel === 'Exemplary'
+              ? 'success'
+              : row.statusLabel === 'Nominal'
+              ? 'info'
+              : 'warning'
+          }
         >
-          View Course Dossier →
-        </button>
+          {row.statusLabel}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Weekly trajectory',
+      numeric: true,
+      accessor: (row) => (
+        <span
+          className={`inline-flex items-center gap-1 text-caption font-medium px-2 py-0.5 rounded-full tabular-nums ${
+            row.isPositive
+              ? 'text-primary bg-primary-container/20'
+              : 'text-error bg-error-container/40'
+          }`}
+        >
+          {row.isPositive ? (
+            <TrendingUp className="w-3 h-3 stroke-[2]" aria-hidden="true" />
+          ) : (
+            <TrendingDown className="w-3 h-3 stroke-[2]" aria-hidden="true" />
+          )}
+          <span>{row.trend}</span>
+        </span>
       ),
     },
   ];
 
   return (
-    <>
-      <div className="max-w-max-width mx-auto px-margin-desktop py-space-xl flex flex-col w-full font-body-md text-on-surface">
-        {/* Header Block */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-space-md mb-space-xl">
-          <div className="flex flex-col max-w-2xl">
-            <span className="font-label-caps text-label-caps uppercase text-secondary tracking-widest mb-1">
-              Intelligence & Analytics • Formative Assessment Telemetry
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
+      {/* Dev State Simulation Harness Bar (only when ?states=1) */}
+      {showHarness && (
+        <aside aria-label="Development test harness" className="w-full">
+          <div className="bg-surface-container-high border border-outline-variant rounded-default p-2 flex flex-wrap items-center justify-between gap-2 text-caption">
+            <span className="text-on-surface-variant font-medium flex items-center gap-1.5">
+              <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
+              Quiz states:
             </span>
-            <h1 className="font-headline-md text-headline-md text-ink-black tracking-tight leading-tight mb-2">
-              Quiz performance
-            </h1>
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Monitor formative assessment mastery, passing thresholds, and concept-level diagnostic signals across academic divisions and collegiate courses.
-            </p>
+            <div className="flex items-center gap-1 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setState('default')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'default'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Default
+              </button>
+              <button
+                type="button"
+                onClick={() => setState('loading')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'loading'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Loading
+              </button>
+              <button
+                type="button"
+                onClick={() => setState('empty')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'empty'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Empty
+              </button>
+              <button
+                type="button"
+                onClick={() => setState('error')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'error'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Error
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-space-sm self-start lg:self-auto flex-wrap">
-            <button
-              className="px-space-md py-2 rounded-lg font-ui-functional text-ui-functional text-primary bg-surface-container hover:bg-surface-container-high transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
-              type="button"
-            >
-              <Icon className="text-[18px]">rule_folder</Icon>
-              <span>Assessment Benchmarking Standards</span>
-            </button>
-            <button
-              className="px-space-md py-2 rounded-lg font-ui-functional text-ui-functional text-on-primary bg-primary hover:bg-primary-container transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
-              type="button"
-            >
-              <Icon className="text-[18px]">download</Icon>
-              <span>Export Senate Assessment Dossier</span>
-            </button>
-          </div>
+        </aside>
+      )}
+
+      {/* Page Header (DESIGN.md section 11: Analytics template) */}
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-outline-variant/40">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-on-surface tracking-tight">
+            Quiz performance
+          </h1>
+          <p className="text-body-sm text-on-surface-variant mt-1 max-w-2xl">
+            Formative assessment completion, concept mastery signals, and sub-threshold diagnostic review rates.
+          </p>
         </div>
 
-        {/* Filter Container */}
-        <section
-          aria-label="Quiz Performance Filters"
-          className="bg-paper-white p-space-md rounded-lg shadow-sm mb-space-xl flex flex-col gap-space-md"
+        {/* Date-range filter & action on the right */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial min-w-[220px]">
+            <select
+              aria-label="Academic date-range filter"
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="w-full h-10 px-3 pr-8 bg-surface-container-lowest border border-outline text-on-surface text-body-sm rounded-default outline-none focus-visible:focus-ring cursor-pointer hover:border-on-surface-variant transition-colors"
+            >
+              <option value="Michaelmas Term 2024–25 (Wks 1–7)">Michaelmas Term 2024–25</option>
+              <option value="Trinity Term 2023–24">Trinity Term 2023–24</option>
+              <option value="Hilary Term 2023–24">Hilary Term 2023–24</option>
+              <option value="Full Academic Year 2023–24">Full Academic Year 2023–24</option>
+            </select>
+          </div>
+          <Button variant="secondary" className="flex-1 sm:flex-initial">
+            <Download className="w-4 h-4" aria-hidden="true" />
+            <span>Export report</span>
+          </Button>
+        </div>
+      </header>
+
+      {/* State: Error */}
+      {state === 'error' && (
+        <Alert
+          variant="error"
+          title="Unable to load quiz performance data"
+          description="We encountered a problem loading formative assessment trends. Check your connection and try again."
+          action={
+            <Button variant="secondary" size="sm" onClick={() => setState('default')}>
+              Try again
+            </Button>
+          }
+        />
+      )}
+
+      {/* State: Loading (Skeleton) */}
+      {state === 'loading' && (
+        <div
+          className="space-y-6 sm:space-y-8 animate-pulse"
+          aria-busy="true"
+          aria-label="Loading quiz performance analytics"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-space-sm">
-            <div className="flex flex-col gap-1">
-              <label className="font-label-caps text-label-caps uppercase text-on-surface-variant">Academic Term</label>
-              <select className="w-full bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-2 px-space-sm rounded-DEFAULT outline-none focus:bg-surface-container">
-                <option selected>Michaelmas Term (Wks 1–7)</option>
-                <option>Hilary Term (Scheduled)</option>
-                <option>Trinity Term (Archive 23–24)</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="font-label-caps text-label-caps uppercase text-on-surface-variant">Faculty / Division</label>
-              <select className="w-full bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-2 px-space-sm rounded-DEFAULT outline-none focus:bg-surface-container">
-                <option selected>All Academic Divisions (4)</option>
-                <option>Humanities Division</option>
-                <option>Mathematical, Physical & Life Sciences</option>
-                <option>Medical Sciences Division</option>
-                <option>Social Sciences Division</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="font-label-caps text-label-caps uppercase text-on-surface-variant">Course Scope</label>
-              <select className="w-full bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-2 px-space-sm rounded-DEFAULT outline-none focus:bg-surface-container">
-                <option selected>All Curricula (412 Active)</option>
-                <option>ENG-320: Advanced Fluid Dynamics</option>
-                <option>BIO-410: Cellular Signalling</option>
-                <option>HIST-204: Late Imperial Diplomacy</option>
-                <option>MATH-210: Linear Algebra</option>
-                <option>PHIL-101: Formal Logic & Dialectic</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="font-label-caps text-label-caps uppercase text-on-surface-variant">Concept / Topic</label>
-              <select className="w-full bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-2 px-space-sm rounded-DEFAULT outline-none focus:bg-surface-container">
-                <option selected>All Syllabus Topics</option>
-                <option>Boundary Layer Discretization</option>
-                <option>Linkage Disequilibrium & Epistasis</option>
-                <option>Transcendental Deduction</option>
-                <option>Eigenvalue Perturbation</option>
-                <option>Diplomatic Realignment</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="font-label-caps text-label-caps uppercase text-on-surface-variant">Registry Search</label>
-              <div className="relative w-full">
-                <Icon className="absolute left-2.5 top-2 text-[18px] text-outline">search</Icon>
-                <input
-                  className="w-full pl-8 pr-space-sm py-1.5 bg-surface-container-low text-on-surface font-ui-functional text-ui-functional rounded-DEFAULT outline-none focus:bg-surface-container"
-                  placeholder="Search topic or code..."
-                  type="text"
-                />
-              </div>
-            </div>
+          {/* Skeleton Insight Line */}
+          <Skeleton className="h-12 w-full rounded-default" />
+
+          {/* Skeleton Headline Chart */}
+          <div className="bg-surface-container-lowest p-5 sm:p-6 rounded-md border border-outline-variant space-y-4">
+            <Skeleton className="h-6 w-56" />
+            <Skeleton className="h-4 w-80" />
+            <Skeleton className="h-64 w-full rounded-default" />
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-space-sm pt-2 bg-paper-white">
-            <div className="flex flex-wrap items-center gap-space-xs">
-              <span className="font-label-caps text-label-caps uppercase text-outline">Active Constraints:</span>
-              {activeFilters.map((filter) => (
-                <span
-                  key={filter}
-                  className="inline-flex items-center gap-1 bg-surface-container-high px-2 py-0.5 rounded-full font-ui-functional text-ui-functional text-on-surface"
-                >
-                  {filter}
-                  <button
-                    aria-label={`Remove filter ${filter}`}
-                    className="hover:text-secondary cursor-pointer flex items-center justify-center">
-                    <Icon size={14}>close</Icon>
-                  </button>
-                </span>
+          {/* Skeleton Breakdown Table */}
+          <div className="bg-surface-container-lowest p-5 sm:p-6 rounded-md border border-outline-variant space-y-4">
+            <Skeleton className="h-6 w-64" />
+            <div className="space-y-3 pt-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-default" />
               ))}
             </div>
-            {activeFilters.length > 0 && (
-              <button
-                className="font-ui-functional text-ui-functional text-secondary hover:text-on-secondary-container transition-colors underline underline-offset-4 cursor-pointer"
-                onClick={resetFilters}
-                type="button"
-              >
-                Clear all filters
-              </button>
-            )}
           </div>
-        </section>
+        </div>
+      )}
 
-        {/* STATE VIEW 1: POPULATED */}
-        {lensState === 'populated' && (
-          <div className="flex flex-col w-full space-y-space-xl">
-            {/* KPI ROW */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md">
-              <KpiTile
-                icon="verified"
-                label="Cohort Mastery"
-                subtext={
-                  <div className="flex items-center justify-between font-ui-functional text-[13px] text-on-surface-variant">
-                    <span className="flex items-center gap-1">
-                      <Icon className="text-[16px] text-primary-container">trending_up</Icon>
-                      +2.8% vs Michaelmas 2023
-                    </span>
-                    <span className="font-label-caps text-[11px] text-outline uppercase">38 Colleges</span>
-                  </div>
-                }
-                trend="+2.8%"
-                trendDirection="up"
-                value="84.6%"
-              />
-              <KpiTile
-                icon="crisis_alert"
-                label="Intervention Margin"
-                subtext={
-                  <div className="flex items-center justify-between font-ui-functional text-[13px] text-on-surface-variant">
-                    <span className="text-secondary flex items-center gap-1">
-                      <Icon className="text-[16px]">trending_down</Icon>
-                      -1.4% failure reduction
-                    </span>
-                    <span className="font-label-caps text-[11px] text-outline uppercase">Term-Over-Term</span>
-                  </div>
-                }
-                trend="-1.4%"
-                trendDirection="down"
-                value="15.4%"
-              />
-              <KpiTile
-                icon="military_tech"
-                label="Highest Cohort Baseline"
-                subtext={
-                  <div className="flex items-center justify-between font-ui-functional text-[13px]">
-                    <span className="font-semibold text-primary">92.4% success</span>
-                    <span className="font-label-caps text-[11px] px-2 py-0.5 bg-surface-container rounded-full text-on-surface-variant uppercase">
-                      14 Cohorts
-                    </span>
-                  </div>
-                }
-                trend="Formal Logic"
-                trendDirection="neutral"
-                value="PHIL-101"
-              />
-              <KpiTile
-                icon="flag"
-                label="Tutorial Flag Registry"
-                subtext={
-                  <div className="flex items-center justify-between font-ui-functional text-[13px] text-on-surface-variant">
-                    <span className="text-secondary flex items-center gap-1">
-                      <Icon className="text-[15px]">campaign</Icon>
-                      Tutorial triage notified
-                    </span>
-                    <span className="font-label-caps text-[11px] text-outline uppercase">3 Faculties</span>
-                  </div>
-                }
-                trend="7 Topics"
-                trendDirection="neutral"
-                value="7 Topics"
-              />
-            </div>
+      {/* State: Empty */}
+      {state === 'empty' && (
+        <div className="bg-surface-container-lowest rounded-md border border-outline-variant p-8 md:p-12">
+          <EmptyState
+            icon={Database}
+            title="No quiz data recorded for this period"
+            description="No formative quiz attempts or diagnostic review logs exist for the selected date range."
+            action={
+              <Button variant="primary" onClick={() => setState('default')}>
+                Reset to current term
+              </Button>
+            }
+          />
+        </div>
+      )}
 
-            {/* MAIN ANALYTICS SECTION: TREND VISUALIZATION */}
-            <div className="bg-paper-white p-space-lg rounded-lg shadow-sm flex flex-col">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-sm mb-space-lg">
-                <div>
-                  <span className="font-label-caps text-label-caps uppercase text-secondary tracking-wider">
-                    Cohort Mastery Trajectory
-                  </span>
-                  <h2 className="font-headline-md text-headline-md text-ink-black tracking-tight mt-0.5">
-                    Formative Assessment Mastery & Retake Cadence
-                  </h2>
-                  <p className="font-body-md text-body-md text-on-surface-variant mt-1">
-                    Weekly aggregate trajectory of first-attempt success vs. remediation attempts across Michaelmas Term (Weeks 1–7).
-                  </p>
-                </div>
-                <div className="flex items-center gap-space-md p-space-sm bg-surface-container-low rounded-lg self-start md:self-auto">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-primary inline-block"></span>
-                    <span className="font-ui-functional text-ui-functional text-on-surface font-medium">Success (≥70%)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-secondary inline-block"></span>
-                    <span className="font-ui-functional text-ui-functional text-on-surface font-medium">Remediation (&lt;70%)</span>
-                  </div>
-                </div>
-              </div>
+      {/* State: Default (Populated) */}
+      {state === 'default' && (
+        <>
+          {/* Component: Plain-Language Insight Line (DESIGN.md section 11) */}
+          <div className="bg-surface-container-low border border-outline-variant/40 rounded-default px-4 py-3 flex items-center gap-3">
+            <TrendingUp className="w-4.5 h-4.5 text-primary shrink-0" aria-hidden="true" />
+            <p className="text-body-sm text-on-surface">
+              <span className="font-semibold text-primary">Formative quiz mastery reached 78.4% across the university this week.</span>{' '}
+              Sub-threshold attempts dropped 4.2% following Week 6 tutorial reviews in History and Mathematics.
+            </p>
+          </div>
 
-              {/* SVG DUAL LINE & AREA CHART */}
-              <div className="relative w-full h-80 bg-surface-container-low rounded-lg p-space-md flex flex-col justify-between overflow-hidden">
-                <div className="absolute inset-x-8 inset-y-8 flex flex-col justify-between pointer-events-none opacity-40">
-                  <div className="w-full flex items-center justify-between">
-                    <span className="font-label-caps text-[10px] text-outline">100%</span>
-                    <div className="w-full ml-4 h-[1px] bg-outline-variant/30"></div>
-                  </div>
-                  <div className="w-full flex items-center justify-between">
-                    <span className="font-label-caps text-[10px] text-outline">80%</span>
-                    <div className="w-full ml-4 h-[1px] bg-outline-variant/30"></div>
-                  </div>
-                  <div className="w-full flex items-center justify-between">
-                    <span className="font-label-caps text-[10px] text-outline">60%</span>
-                    <div className="w-full ml-4 h-[1px] bg-outline-variant/30"></div>
-                  </div>
-                  <div className="w-full flex items-center justify-between">
-                    <span className="font-label-caps text-[10px] text-outline">40%</span>
-                    <div className="w-full ml-4 h-[1px] bg-outline-variant/30"></div>
-                  </div>
-                  <div className="w-full flex items-center justify-between">
-                    <span className="font-label-caps text-[10px] text-outline">20%</span>
-                    <div className="w-full ml-4 h-[1px] bg-outline-variant/30"></div>
-                  </div>
-                  <div className="w-full flex items-center justify-between">
-                    <span className="font-label-caps text-[10px] text-outline">0%</span>
-                    <div className="w-full ml-4 h-[1px] bg-outline-variant/30"></div>
-                  </div>
-                </div>
-
-                <div className="relative w-full h-full pl-8 pb-6 pt-2 pr-4">
-                  <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 700 240">
-                    <defs>
-                      <linearGradient id="successFill" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#272e0a" stopOpacity="0.22" />
-                        <stop offset="100%" stopColor="#272e0a" stopOpacity="0.01" />
-                      </linearGradient>
-                      <linearGradient id="failFill" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#855300" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="#855300" stopOpacity="0.01" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M 10 74 Q 120 70, 230 58 T 460 42 T 580 36 L 690 32 L 690 235 L 10 235 Z" fill="url(#successFill)" />
-                    <path d="M 10 74 Q 120 70, 230 58 T 460 42 T 580 36 L 690 32" fill="none" stroke="#272e0a" strokeLinecap="round" strokeWidth="3" />
-                    <path d="M 10 166 Q 120 170, 230 182 T 460 198 T 580 204 L 690 208 L 690 235 L 10 235 Z" fill="url(#failFill)" />
-                    <path d="M 10 166 Q 120 170, 230 182 T 460 198 T 580 204 L 690 208" fill="none" stroke="#855300" strokeDasharray="4 3" strokeLinecap="round" strokeWidth="2.5" />
-                    <line stroke="#77786c" strokeDasharray="3 3" strokeWidth="1.5" x1="580" x2="580" y1="20" y2="235" />
-                    <circle cx="580" cy="36" fill="#272e0a" r="6" stroke="#ffffff" strokeWidth="2" />
-                    <circle cx="580" cy="204" fill="#855300" r="5" stroke="#ffffff" strokeWidth="2" />
-                  </svg>
-                  <div className="absolute top-6 right-[12%] bg-ink-black text-paper-white p-2.5 rounded-lg shadow-xl pointer-events-none hidden md:flex flex-col">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="w-2 h-2 rounded-full bg-secondary-fixed"></span>
-                      <span className="font-label-caps text-[11px] uppercase tracking-wide text-secondary-fixed">Wk 6 Formative Checkpoint</span>
-                    </div>
-                    <div className="font-ui-functional text-ui-functional font-medium leading-none mb-1">4,820 Submissions Verified</div>
-                    <div className="font-label-caps text-[11px] text-surface-container-high opacity-85">Success: 84.8% • Retakes: 15.2%</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pl-8 pr-4 pt-2">
-                  <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">Week 1 (Induction)</span>
-                  <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">Week 2</span>
-                  <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">Week 3</span>
-                  <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">Week 4</span>
-                  <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">Week 5</span>
-                  <span className="font-label-caps text-label-caps uppercase text-primary font-bold">Week 6 (Midterm)</span>
-                  <span className="font-label-caps text-label-caps uppercase text-on-surface font-semibold">Week 7 (Active)</span>
-                </div>
-              </div>
-
-              {/* Institutional Summary Footer */}
-              <div className="mt-space-md p-space-md bg-surface-container rounded-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-space-sm">
-                <div className="flex items-center gap-space-sm">
-                  <Icon className="text-primary text-[22px]">school</Icon>
-                  <div>
-                    <span className="font-ui-functional text-ui-functional font-semibold text-primary">Collegiate Mastery Index:</span>
-                    <span className="font-ui-functional text-ui-functional text-on-surface ml-1">
-                      88.2% of tutorial fellows conduct pre-supervision diagnostic quizzes prior to 1-on-1 sessions.
-                    </span>
-                  </div>
-                </div>
-                <span className="font-label-caps text-[11px] text-on-surface-variant uppercase tracking-wider whitespace-nowrap">
-                  Telemetry Source: InCommon Fed. Synapse v4.2
-                </span>
-              </div>
-            </div>
-
-            {/* SECOND SECTION: COURSE PERFORMANCE LEDGER using DataTable */}
-            <div className="bg-paper-white p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
-                <div>
-                  <span className="font-label-caps text-label-caps uppercase text-secondary tracking-wider">Curricular Ledger</span>
-                  <h2 className="font-headline-md text-headline-md text-ink-black tracking-tight mt-0.5">
-                    Course Assessment Mastery Ledger
-                  </h2>
-                </div>
-                <div className="flex flex-wrap items-center gap-space-sm">
-                  <div className="flex items-center bg-surface-container rounded-lg p-1">
-                    {['All Divisions', 'Humanities', 'MPLS', 'Medical'].map((tab) => (
-                      <button
-                        key={tab}
-                        className={`px-3 py-1 rounded-DEFAULT font-ui-functional text-ui-functional transition-all cursor-pointer ${
-                          activeDivisionTab === tab
-                            ? 'bg-paper-white font-semibold text-primary shadow-sm'
-                            : 'text-on-surface-variant hover:text-on-surface'
-                        }`}
-                        onClick={() => setActiveDivisionTab(tab)}
-                        type="button"
-                      >
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-                  <select className="bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-1.5 px-space-sm rounded-DEFAULT outline-none focus:bg-surface-container">
-                    <option>Sort by: Lowest Success Rate (Asc)</option>
-                    <option>Sort by: Highest Total Attempts</option>
-                    <option>Sort by: Largest Remediation Burden</option>
-                    <option>Sort by: Course Code (A–Z)</option>
-                  </select>
-                </div>
-              </div>
-
-              <DataTable
-                columns={columns}
-                data={filteredCourseData}
-                keyExtractor={(row) => row.code}
-              />
-
-              <div className="mt-space-md flex items-center justify-between font-ui-functional text-[13px] text-on-surface-variant pt-2 bg-paper-white border-t border-surface-container-high">
-                <span>Displaying {filteredCourseData.length} of 412 collegiate curricula</span>
-                <div className="flex items-center gap-1">
-                  <button className="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer" type="button">Previous</button>
-                  <span className="px-2 font-semibold text-primary">1</span>
-                  <button className="px-2 py-1 rounded hover:bg-surface-container transition-colors cursor-pointer" type="button">2</button>
-                  <button className="px-2 py-1 rounded hover:bg-surface-container transition-colors cursor-pointer" type="button">3</button>
-                  <span className="px-1">…</span>
-                  <button className="px-2 py-1 rounded hover:bg-surface-container transition-colors cursor-pointer" type="button">83</button>
-                  <button className="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer" type="button">Next</button>
-                </div>
-              </div>
-            </div>
-
-            {/* THIRD SECTION: WEAK TOPICS & CONCEPT SIGNALS */}
-            <div className="bg-paper-white p-space-lg rounded-lg shadow-sm flex flex-col">
-              <div className="flex flex-col mb-space-md">
-                <span className="font-label-caps text-label-caps uppercase text-secondary tracking-wider">Formative Diagnostic Signals</span>
-                <h2 className="font-headline-md text-headline-md text-ink-black tracking-tight mt-0.5">
-                  Syllabus Concept Review Signals
+          {/* Component: One Headline Chart (DESIGN.md section 11: text alternatives, non-color reliance) */}
+          <section
+            aria-labelledby="headline-chart-title"
+            className="bg-surface-container-lowest border border-outline-variant rounded-md p-5 sm:p-6 flex flex-col"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-outline-variant/30">
+              <div>
+                <h2 id="headline-chart-title" className="text-h3 font-serif font-semibold text-on-surface">
+                  Weekly quiz mastery trajectory
                 </h2>
-                <p className="font-body-md text-body-md text-on-surface-variant mt-1 max-w-4xl">
-                  Specific curriculum topics surfacing sub-optimal cohort comprehension. These signals are designed as formative guidance for tutorial fellows and syllabus directors to consider during weekly supervisions.
+                <p className="text-caption text-on-surface-variant mt-0.5">
+                  Aggregated percentage of students achieving formative mastery on first attempt.
                 </p>
               </div>
-              <div className="flex flex-col gap-space-sm">
-                {conceptSignalsData.map((concept, idx) => (
-                  <div
-                    key={idx}
-                    className="p-space-md bg-surface-container-low rounded-lg flex flex-col lg:flex-row lg:items-center justify-between gap-space-sm hover:bg-surface-container transition-colors"
-                  >
-                    <div className="flex items-start gap-space-sm">
-                      <span
-                        className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${
-                          concept.dotColor === 'secondary' ? 'bg-secondary' : 'bg-primary'
-                        }`}
-                      ></span>
-                      <div>
-                        <div className="font-ui-functional text-ui-functional font-semibold text-primary">
-                          {concept.title}
+
+              {/* View Toggle: Chart vs Accessible Data Table */}
+              <div className="inline-flex rounded-default bg-surface-container p-0.5 self-start sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => setChartViewMode('chart')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-caption transition-colors cursor-pointer ${
+                    chartViewMode === 'chart'
+                      ? 'bg-surface-container-lowest text-on-surface font-semibold shadow-xs'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                  aria-pressed={chartViewMode === 'chart'}
+                >
+                  <Activity className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Mastery chart</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartViewMode('table')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-caption transition-colors cursor-pointer ${
+                    chartViewMode === 'table'
+                      ? 'bg-surface-container-lowest text-on-surface font-semibold shadow-xs'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                  aria-pressed={chartViewMode === 'table'}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Data table</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Screen Reader Text Alternative */}
+            <p className="sr-only">
+              Formative quiz mastery trend: Week 1 started at 71.2% across 1,240 attempts, increased steadily to 79.2% in Week 5, peaked at 81.4% during Week 6 midterm reviews, and currently registers 78.4% across 4,180 attempts in Week 7.
+            </p>
+
+            {/* Visual View: Accessible Chart */}
+            {chartViewMode === 'chart' ? (
+              <div className="pt-6">
+                <div className="grid grid-cols-7 gap-2 sm:gap-4 items-end h-56 pt-4 pb-2 border-b border-outline-variant">
+                  {mockWeeklyMastery.map((point) => {
+                    // Normalize bar height between 50% base and 100% max
+                    const heightPct = Math.round(((point.masteryRate - 50) / 50) * 100);
+                    const isCurrent = point.week.includes('Current') || point.week === 'Wk 7';
+
+                    return (
+                      <div
+                        key={point.week}
+                        className="flex flex-col items-center justify-end h-full gap-2 group relative"
+                      >
+                        {/* Numeric Value Label above bar */}
+                        <span className="text-[11px] sm:text-caption tabular-nums text-on-surface font-semibold">
+                          {point.masteryRate.toFixed(1)}%
+                        </span>
+
+                        {/* Bar with distinct pattern / border for non-color reliance */}
+                        <div
+                          className="w-full max-w-[48px] bg-surface-container rounded-t-default relative flex flex-col justify-end overflow-hidden"
+                          style={{ height: `${heightPct}%` }}
+                        >
+                          <div
+                            className={`w-full h-full rounded-t-default transition-all ${
+                              isCurrent
+                                ? 'bg-primary border-t-2 border-primary-container'
+                                : 'bg-primary/80 group-hover:bg-primary'
+                            }`}
+                          />
                         </div>
-                        <div className="font-body-md text-[13px] text-on-surface-variant mt-0.5">
-                          Course: <span className="font-medium text-ink-black">{concept.courseCode}</span> • {concept.attempts.toLocaleString()} student attempts logged
-                          {concept.tutorialGroups ? ` across ${concept.tutorialGroups} tutorial groups` : ''}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-space-md flex-wrap self-end lg:self-center">
-                      <div className="text-right">
-                        <span className="font-label-caps text-[11px] uppercase text-outline block">Cohort Mastery</span>
+
+                        {/* Week Label */}
                         <span
-                          className={`font-headline-sm text-headline-sm font-bold leading-none ${
-                            concept.masteryPct < 60 ? 'text-secondary' : 'text-primary'
+                          className={`text-[11px] sm:text-caption font-medium truncate ${
+                            isCurrent ? 'text-primary font-semibold' : 'text-on-surface-variant'
                           }`}
                         >
-                          {concept.masteryPct.toFixed(1)}%
+                          {point.week}
                         </span>
+
+                        {/* Hover Details Callout */}
+                        <div className="absolute bottom-full mb-2 hidden group-hover:flex group-focus-within:flex flex-col z-20 bg-surface-container-high text-on-surface p-2.5 rounded-default border border-outline-variant shadow-sm text-caption whitespace-nowrap pointer-events-none">
+                          <span className="font-semibold text-on-surface">{point.label}</span>
+                          <span className="text-on-surface-variant">Attempts: {point.attempts.toLocaleString()}</span>
+                          <span className="font-medium text-primary">Mastery rate: {point.masteryRate}%</span>
+                        </div>
                       </div>
-                      <span
-                        className={`px-2.5 py-1 rounded font-label-caps text-[11px] uppercase font-semibold ${
-                          concept.statusType === 'secondary-fixed'
-                            ? 'bg-secondary-fixed text-on-secondary-fixed'
-                            : concept.statusType === 'primary-fixed'
-                            ? 'bg-primary-fixed text-on-primary-fixed'
-                            : 'bg-surface-container text-on-surface-variant'
-                        }`}
-                      >
-                        {concept.statusLabel}
-                      </span>
-                      <button
-                        className="px-space-sm py-1 rounded bg-paper-white hover:bg-surface-container-high text-primary font-ui-functional text-ui-functional shadow-sm font-medium cursor-pointer"
-                        type="button"
-                      >
-                        Inspect Concept Breakdown →
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STATE VIEW 2: EMPTY */}
-        {lensState === 'empty' && (
-          <div className="flex flex-col w-full">
-            <div className="bg-paper-white p-16 rounded-lg shadow-sm text-center flex flex-col items-center justify-center max-w-2xl mx-auto my-12">
-              <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-primary mb-space-md">
-                <Icon className="text-[32px]">edit_calendar</Icon>
-              </div>
-              <span className="font-label-caps text-label-caps uppercase text-secondary tracking-wider mb-1">Pre-Assessment Period</span>
-              <h3 className="font-headline-md text-headline-md text-ink-black mb-2">No Formative Data Logged for Hilary Term</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant mb-space-lg">
-                The upcoming academic term has not yet commenced formative diagnostic quiz schedules. Initial quiz telemetry will populate automatically following Week 1 tutorial inductions.
-              </p>
-              <div className="flex items-center gap-space-sm">
-                <button
-                  className="px-space-md py-2 rounded-lg bg-primary text-on-primary font-ui-functional text-ui-functional hover:bg-primary-container transition-colors cursor-pointer"
-                  onClick={() => setLensState('populated')}
-                  type="button"
-                >
-                  Return to Michaelmas Active Term
-                </button>
-                <button
-                  className="px-space-md py-2 rounded-lg bg-surface-container text-on-surface font-ui-functional text-ui-functional hover:bg-surface-container-high transition-colors cursor-pointer"
-                  type="button"
-                >
-                  Configure Term Quiz Benchmarks
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STATE VIEW 3: FILTERED ZERO RESULTS */}
-        {lensState === 'filtered-zero' && (
-          <div className="flex flex-col w-full">
-            <div className="bg-paper-white p-16 rounded-lg shadow-sm text-center flex flex-col items-center justify-center max-w-2xl mx-auto my-12">
-              <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-secondary mb-space-md">
-                <Icon className="text-[32px]">filter_alt_off</Icon>
-              </div>
-              <span className="font-label-caps text-label-caps uppercase text-secondary tracking-wider mb-1">Query Mismatch</span>
-              <h3 className="font-headline-md text-headline-md text-ink-black mb-2">Zero Matching Assessment Cohorts</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant mb-space-lg">
-                No active course cohorts matched your current composite filter combination of threshold (&lt;65%), syllabus topic, and division scope. Try loosening threshold bounds or clearing topic keywords.
-              </p>
-              <button
-                className="px-space-md py-2 rounded-lg bg-primary text-on-primary font-ui-functional text-ui-functional hover:bg-primary-container transition-colors cursor-pointer"
-                onClick={resetFilters}
-                type="button"
-              >
-                Reset to Default Michaelmas Telemetry
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STATE VIEW 4: LOADING */}
-        {lensState === 'loading' && (
-          <div className="flex flex-col w-full space-y-space-md">
-            <div className="bg-paper-white p-space-lg rounded-lg shadow-sm flex items-center gap-space-md">
-              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <div className="flex flex-col">
-                <span className="font-ui-functional text-ui-functional font-semibold text-primary">Synchronizing Formative Datastores with InCommon Federation...</span>
-                <span className="font-label-caps text-[11px] text-on-surface-variant uppercase">Ingesting quiz submission bundles from 38 collegiate faculties • Batch #4092</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md">
-              {[1, 2, 3, 4].map((idx) => (
-                <div key={idx} className="bg-paper-white p-space-lg rounded-lg h-36 animate-pulse flex flex-col justify-between">
-                  <div className="h-4 bg-surface-container rounded w-1/3"></div>
-                  <div className="h-10 bg-surface-container-high rounded w-1/2"></div>
-                  <div className="h-3 bg-surface-container rounded w-2/3"></div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-            <div className="bg-paper-white p-space-lg rounded-lg h-96 animate-pulse flex flex-col justify-between">
-              <div className="h-6 bg-surface-container rounded w-1/4"></div>
-              <div className="h-64 bg-surface-container-low rounded"></div>
-              <div className="h-4 bg-surface-container rounded w-1/3"></div>
-            </div>
-          </div>
-        )}
-      </div>
-      <DevStateLens
-        activeId={lensState}
-        label="Quiz Telemetry State Lens"
-        onSelect={(id) => setLensState(id as 'populated' | 'empty' | 'filtered-zero' | 'loading')}
-        options={[
-          { id: 'populated', label: '1. Populated (Michaelmas 2024–25)' },
-          { id: 'empty', label: '2. Fresh Term / Pre-Assessment' },
-          { id: 'filtered-zero', label: '3. Filtered-Zero Results' },
-          { id: 'loading', label: '4. Synapse Ingestion' },
-        ]}
-      />
-    </>
+
+                {/* Visible Chart Summary sentence below chart (Text alternative requirement) */}
+                <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-caption text-on-surface-variant">
+                  <span>
+                    Term mastery climbed from 71.2% in Week 1 to a peak of 81.4% in Week 6, with current Week 7 sustaining 78.4%.
+                  </span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-xs bg-primary" aria-hidden="true" />
+                      <span>Formative mastery rate</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Accessible Alternative Data Table View */
+              <div className="pt-4 overflow-x-auto">
+                <table className="w-full text-left text-body-sm border-collapse" aria-label="Weekly quiz mastery data">
+                  <thead>
+                    <tr className="border-b border-outline-variant text-caption text-on-surface-variant">
+                      <th scope="col" className="py-2.5 pr-4 font-medium">Academic week</th>
+                      <th scope="col" className="py-2.5 px-4 font-medium text-right">Formative attempts</th>
+                      <th scope="col" className="py-2.5 pl-4 font-medium text-right">Mastery percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/30">
+                    {mockWeeklyMastery.map((point) => (
+                      <tr key={point.week} className="hover:bg-surface-container/50">
+                        <td className="py-2.5 pr-4 font-medium text-on-surface">{point.label}</td>
+                        <td className="py-2.5 px-4 text-right tabular-nums text-on-surface">{point.attempts.toLocaleString()}</td>
+                        <td className="py-2.5 pl-4 text-right font-semibold tabular-nums text-primary">{point.masteryRate.toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          {/* Component: Supporting Breakdown Table (DESIGN.md section 11) */}
+          <section className="flex flex-col">
+            <DataTable
+              title="Course mastery breakdown"
+              subtitle="Formative attempts, concept mastery thresholds, and weekly performance trends."
+              columns={columns}
+              data={mockQuizBreakdown}
+              keyExtractor={(row) => row.code}
+            />
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function QuizPerformancePage() {
+  return (
+    <Suspense fallback={<div className="p-8 max-w-7xl mx-auto min-h-dvh" />}>
+      <QuizPerformanceContent />
+    </Suspense>
   );
 }

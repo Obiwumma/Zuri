@@ -99,7 +99,7 @@ const mockWeeklyCadence = [
 
 function AiUsageContent() {
   const searchParams = useSearchParams();
-  const showHarness = searchParams.get('states') === '1';
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
 
   const [state, setState] = useState<AnalyticsState>('default');
   const [dateRange, setDateRange] = useState('Michaelmas Term 2024–25 (Wks 1–7)');

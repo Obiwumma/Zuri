@@ -193,7 +193,7 @@ const mockStudents: StudentRecord[] = [
 
 function StudentsContent() {
   const searchParams = useSearchParams();
-  const showHarness = searchParams.get('states') === '1';
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
 
   const [state, setState] = useState<StudentsPageState>('default');
   const [searchQuery, setSearchQuery] = useState('');

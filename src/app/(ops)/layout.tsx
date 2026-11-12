@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { getFrontendRoleLabel, canAccessOps } from '@/lib/auth/roles';
 import { OpsLayoutClient } from './OpsLayoutClient';
+import { OpsThemeRoot } from '@/components/ui/OpsThemeRoot';
 
 export default async function OpsLayout({
   children,
@@ -20,7 +21,7 @@ export default async function OpsLayout({
     pathname === '/ops/reset-password' ||
     pathname === '/ops/change-password'
   ) {
-    return <div data-theme="ops" className="dark min-h-dvh bg-ops-canvas text-ops-text font-body">{children}</div>;
+    return <OpsThemeRoot>{children}</OpsThemeRoot>;
   }
 
   // Derive authenticated identity from session on the server
@@ -34,10 +35,10 @@ export default async function OpsLayout({
   const displayName = session?.email
     ? session.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
     : 'SecOps Lead';
-  const displayEmail = session?.email || 'operator@lexi.internal';
+  const displayEmail = session?.email || '';
 
   return (
-    <div data-theme="ops" className="dark min-h-dvh bg-ops-canvas text-ops-text">
+    <OpsThemeRoot>
       <OpsLayoutClient
         user={{
           name: displayName,
@@ -47,6 +48,6 @@ export default async function OpsLayout({
       >
         {children}
       </OpsLayoutClient>
-    </div>
+    </OpsThemeRoot>
   );
 }

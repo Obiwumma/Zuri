@@ -1,894 +1,534 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
-import { KpiTile } from '@/components/ui/KpiTile';
+import React, { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import {
+  Button,
+  Badge,
+  EmptyState,
+  Skeleton,
+  Alert,
+} from '@/components/ui';
+import {
+  FileText,
+  SlidersHorizontal,
+  Plus,
+  ChevronRight,
+  CheckCircle2,
+  Clock,
+  Layers,
+  Search,
+  X,
+  Upload,
+  RefreshCw,
+  AlertCircle,
+} from 'lucide-react';
 
-type LensState = 'review' | 'processing' | 'triage' | 'empty' | 'retry';
+export type ExtractionState = 'default' | 'loading' | 'empty' | 'error';
 
-export default function ExtractionPage() {
-  const [lensState, setLensState] = useState<LensState>('review');
+interface ExtractedEntity {
+  label: string;
+  value: string;
+  confidence: string;
+}
+
+interface ExtractionDocument {
+  id: string;
+  title: string;
+  courseCode: string;
+  courseTitle: string;
+  department: string;
+  uploadedAt: string;
+  uploaderName: string;
+  fileSize: string;
+  pageCount: number;
+  status: 'Ready for review' | 'Processing' | 'Fully confirmed';
+  entities: ExtractedEntity[];
+  conceptNodes: string[];
+  summary: string;
+}
+
+const mockDocuments: ExtractionDocument[] = [
+  {
+    id: 'doc-1',
+    title: 'Michaelmas Term 2024–25 Lecture Syllabus & Reading Schedule',
+    courseCode: 'ENG-320',
+    courseTitle: 'Advanced Fluid Dynamics',
+    department: 'Dept. of Engineering Science',
+    uploadedAt: '03 Nov 2024 • 14:22',
+    uploaderName: 'Prof. Alistair Montgomery',
+    fileSize: '4.8 MB',
+    pageCount: 18,
+    status: 'Ready for review',
+    entities: [
+      { label: 'Weekly cadence', value: 'Tues & Thurs • 10:00 AM', confidence: 'High' },
+      { label: 'Primary hall venue', value: 'Examination Schools, Hall 4', confidence: 'High' },
+      { label: 'Supervisor ratio', value: '1:4 Fellow-to-undergraduate', confidence: 'High' },
+      { label: 'Total lecture count', value: '16 lectures across 8 weeks', confidence: 'High' },
+    ],
+    conceptNodes: [
+      'Navier-Stokes solutions',
+      'Boundary layer turbulence',
+      'Reynolds numbers',
+      'Vorticity dynamics',
+      'Compressible gas dynamics',
+    ],
+    summary:
+      'Eight-week syllabus covering differential governing equations for turbulent fluid flow, boundary layer approximations, and perturbation theory.',
+  },
+  {
+    id: 'doc-2',
+    title: 'Diplomatic Dispatches and Treaty Protocols (1870–1914)',
+    courseCode: 'HIST-204',
+    courseTitle: 'Late Imperial Diplomacy',
+    department: 'Faculty of History',
+    uploadedAt: '02 Nov 2024 • 09:15',
+    uploaderName: 'Dr. Clara Sterling',
+    fileSize: '12.4 MB',
+    pageCount: 34,
+    status: 'Fully confirmed',
+    entities: [
+      { label: 'Weekly cadence', value: 'Mon & Wed • 11:00 AM', confidence: 'High' },
+      { label: 'Seminar venue', value: 'Schools Lecture Room 2', confidence: 'High' },
+      { label: 'Supervision structure', value: '8 college tutorial groups', confidence: 'High' },
+    ],
+    conceptNodes: [
+      'Bismarckian alliance system',
+      'Triple Entente diplomacy',
+      'Franco-Russian convention',
+      'Balkan crisis management',
+    ],
+    summary:
+      'Primary diplomatic archival sources, ambassadorial correspondence, and treaty protocols governing European foreign policy before 1914.',
+  },
+  {
+    id: 'doc-3',
+    title: 'Laboratory Manual: Signal Transduction & Receptor Protocols',
+    courseCode: 'BIO-410',
+    courseTitle: 'Cellular Signalling & Genomic Medicine',
+    department: 'Dept. of Biochemistry',
+    uploadedAt: '01 Nov 2024 • 16:40',
+    uploaderName: 'Prof. Rowan Thorne',
+    fileSize: '8.2 MB',
+    pageCount: 26,
+    status: 'Processing',
+    entities: [
+      { label: 'Lab session cadence', value: 'Wed & Fri • 09:00 AM', confidence: 'Medium' },
+      { label: 'Laboratory location', value: 'Medical Sciences Teaching Centre', confidence: 'High' },
+    ],
+    conceptNodes: [
+      'Phosphorylation cascades',
+      'CRISPR validation',
+      'Receptor tyrosine kinases',
+      'Flow cytometry protocols',
+    ],
+    summary:
+      'Wet-lab procedures for mammalian receptor assays, fluorescence microscopy, and quantitative analysis of kinase phosphorylation kinetics.',
+  },
+  {
+    id: 'doc-4',
+    title: 'Formal Logic & Proof Theory Tutorial Problem Sets',
+    courseCode: 'PHIL-101',
+    courseTitle: 'Formal Logic & Dialectic',
+    department: 'Faculty of Philosophy',
+    uploadedAt: '28 Oct 2024 • 11:05',
+    uploaderName: 'Dr. Aris Thorne',
+    fileSize: '3.1 MB',
+    pageCount: 14,
+    status: 'Fully confirmed',
+    entities: [
+      { label: 'Tutorial cadence', value: 'Tues & Thurs • 14:00 PM', confidence: 'High' },
+      { label: 'Lecture hall', value: 'Radcliffe Humanities Auditorium', confidence: 'High' },
+    ],
+    conceptNodes: [
+      'Fregean semantics',
+      'Gödel completeness',
+      'Natural deduction systems',
+      'Modal logic frames',
+    ],
+    summary:
+      'Problem sets and formal exercises in first-order predicate logic, semantic validity tableaux, and axiomatic proof systems.',
+  },
+];
+
+function ExtractionContent() {
+  const searchParams = useSearchParams();
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
+
+  const [state, setState] = useState<ExtractionState>('default');
   const [selectedDocId, setSelectedDocId] = useState<string>('doc-1');
-  const [venueInput, setVenueInput] = useState<string>('Examination Schools, Hall 3 (South Annex)');
-  const [isVenueResolved, setIsVenueResolved] = useState<boolean>(false);
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
+  const [confirmedDocs, setConfirmedDocs] = useState<Set<string>>(new Set(['doc-2', 'doc-4']));
 
-  const handleResolveVenue = () => {
-    setIsVenueResolved(true);
+  const selectedDoc =
+    mockDocuments.find((d) => d.id === selectedDocId) || mockDocuments[0];
+
+  const isConfirmed = confirmedDocs.has(selectedDoc.id);
+
+  const handleConfirmExtraction = () => {
+    setIsConfirming(true);
+    setTimeout(() => {
+      setConfirmedDocs((prev) => new Set(prev).add(selectedDoc.id));
+      setIsConfirming(false);
+    }, 400);
   };
 
   return (
-    <div className="max-w-max-width mx-auto px-margin-desktop py-space-xl">
-        <div className="flex flex-col w-full">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
+      {/* Dev State Simulation Harness Bar (only when ?states=1) */}
+      {showHarness && (
+        <aside aria-label="Development test harness" className="w-full">
+          <div className="bg-surface-container-high border border-outline-variant rounded-default p-2 flex flex-wrap items-center justify-between gap-2 text-caption">
+            <span className="text-on-surface-variant font-medium flex items-center gap-1.5">
+              <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
+              Extraction states:
+            </span>
+            <div className="flex items-center gap-1 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setState('default')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'default'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Default
+              </button>
+              <button
+                type="button"
+                onClick={() => setState('loading')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'loading'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Loading
+              </button>
+              <button
+                type="button"
+                onClick={() => setState('empty')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'empty'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Empty
+              </button>
+              <button
+                type="button"
+                onClick={() => setState('error')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'error'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Error
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
 
-          {/* SIMULATED STATE LENSES (Academic Administrative Modes) */}
-          <div className="w-full bg-surface-container-low rounded-xl p-space-sm mb-space-lg flex flex-wrap items-center justify-between gap-space-sm shadow-xs">
-            <div className="flex items-center gap-space-sm">
-              <div className="w-2 h-2 rounded-full bg-secondary"></div>
-              <span className="font-label-caps text-label-caps uppercase text-secondary tracking-widest">
-                Console Simulation Lens:
+      {/* Page Header (DESIGN.md section 11: Detail template) */}
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-outline-variant/40">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-on-surface tracking-tight">
+            Document extraction
+          </h1>
+          <p className="text-body-sm text-on-surface-variant mt-1 max-w-2xl">
+            Review parsed course syllabi, verify timetable venues, and approve extracted curriculum concepts.
+          </p>
+        </div>
+
+        {/* Primary Action on the right (full-width below sm) */}
+        <div className="shrink-0 w-full sm:w-auto">
+          <Button variant="primary" className="w-full sm:w-auto">
+            <Upload className="w-4 h-4" aria-hidden="true" />
+            <span>Upload syllabus document</span>
+          </Button>
+        </div>
+      </header>
+
+      {/* State: Error */}
+      {state === 'error' && (
+        <Alert
+          variant="error"
+          title="Unable to load document extraction queue"
+          description="There was a problem retrieving queued syllabus documents. Check your connection and try again."
+          action={
+            <Button variant="secondary" size="sm" onClick={() => setState('default')}>
+              Try again
+            </Button>
+          }
+        />
+      )}
+
+      {/* State: Loading (Skeleton) */}
+      {state === 'loading' && (
+        <div
+          className="space-y-6 sm:space-y-8 animate-pulse"
+          aria-busy="true"
+          aria-label="Loading document extraction workspace"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column Skeletons */}
+            <div className="lg:col-span-5 space-y-3">
+              <Skeleton className="h-6 w-36 mb-2" />
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="bg-surface-container-lowest p-4 rounded-md border border-outline-variant space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              ))}
+            </div>
+
+            {/* Right Column Skeleton */}
+            <div className="lg:col-span-7 bg-surface-container-lowest p-6 rounded-md border border-outline-variant space-y-6">
+              <div className="space-y-2">
+                <Skeleton className="h-7 w-64" />
+                <Skeleton className="h-4 w-40" />
+              </div>
+              <Skeleton className="h-20 w-full" />
+              <div className="space-y-3 pt-4 border-t border-outline-variant/40">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* State: Empty */}
+      {state === 'empty' && (
+        <div className="bg-surface-container-lowest rounded-md border border-outline-variant p-8 md:p-12">
+          <EmptyState
+            icon={FileText}
+            title="No documents queued for extraction"
+            description="All uploaded course documents and syllabus files have been fully reviewed and indexed."
+            action={
+              <Button variant="primary" onClick={() => setState('default')}>
+                View sample documents
+              </Button>
+            }
+          />
+        </div>
+      )}
+
+      {/* State: Default (Two-column on lg, single column below) */}
+      {state === 'default' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Extraction Queue (lg:col-span-5) */}
+          <section
+            aria-labelledby="queue-title"
+            className="lg:col-span-5 flex flex-col space-y-3"
+          >
+            <div className="flex items-center justify-between pb-1">
+              <h2
+                id="queue-title"
+                className="text-body font-semibold text-on-surface"
+              >
+                Extraction queue
+              </h2>
+              <span className="text-caption text-on-surface-variant tabular-nums">
+                {mockDocuments.length} documents
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setLensState('review')}
-                className={`px-space-sm py-1 rounded-full font-ui-functional text-[13px] transition-all cursor-pointer ${
-                  lensState === 'review'
-                    ? 'bg-primary text-on-primary shadow-xs font-semibold'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                }`}
-              >
-                1. Populated Review Workspace
-              </button>
-              <button
-                type="button"
-                onClick={() => setLensState('processing')}
-                className={`px-space-sm py-1 rounded-full font-ui-functional text-[13px] transition-all cursor-pointer ${
-                  lensState === 'processing'
-                    ? 'bg-primary text-on-primary shadow-xs font-semibold'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                }`}
-              >
-                2. In-Flight Processing
-              </button>
-              <button
-                type="button"
-                onClick={() => setLensState('triage')}
-                className={`px-space-sm py-1 rounded-full font-ui-functional text-[13px] transition-all cursor-pointer ${
-                  lensState === 'triage'
-                    ? 'bg-primary text-on-primary shadow-xs font-semibold'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                }`}
-              >
-                3. Needs Review Triage
-              </button>
-              <button
-                type="button"
-                onClick={() => setLensState('empty')}
-                className={`px-space-sm py-1 rounded-full font-ui-functional text-[13px] transition-all cursor-pointer ${
-                  lensState === 'empty'
-                    ? 'bg-primary text-on-primary shadow-xs font-semibold'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                }`}
-              >
-                4. Pre-Upload State
-              </button>
-              <button
-                type="button"
-                onClick={() => setLensState('retry')}
-                className={`px-space-sm py-1 rounded-full font-ui-functional text-[13px] transition-all cursor-pointer ${
-                  lensState === 'retry'
-                    ? 'bg-primary text-on-primary shadow-xs font-semibold'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                }`}
-              >
-                5. Processing Exception
-              </button>
-            </div>
-            <div className="hidden xl:flex items-center gap-space-xs text-on-surface-variant font-label-caps text-label-caps uppercase">
-              <Icon className="text-[15px] text-secondary">verified</Icon>
-              <span>Registry Engine v4.2</span>
-            </div>
-          </div>
 
-          {/* EDITORIAL HEADER SECTION */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-space-lg mb-space-xl">
-            <div className="max-w-3xl">
-              <div className="flex items-center gap-space-xs text-secondary font-label-caps text-label-caps uppercase tracking-wider mb-space-xs">
-                <span>Content &amp; Knowledge</span>
-                <span>•</span>
-                <span>Institutional Source Extraction &amp; Syllabus Ingestion</span>
+            <div
+              role="tablist"
+              aria-label="Extraction queue documents"
+              className="space-y-2.5"
+            >
+              {mockDocuments.map((doc) => {
+                const isSelected = doc.id === selectedDoc.id;
+                const docConfirmed = confirmedDocs.has(doc.id);
+
+                return (
+                  <button
+                    key={doc.id}
+                    role="tab"
+                    id={`doc-tab-${doc.id}`}
+                    aria-selected={isSelected}
+                    aria-controls={`doc-panel-${doc.id}`}
+                    type="button"
+                    onClick={() => setSelectedDocId(doc.id)}
+                    className={`w-full text-left p-4 rounded-md border transition-all cursor-pointer flex flex-col gap-2.5 outline-none focus-visible:focus-ring ${
+                      isSelected
+                        ? 'bg-surface-container-lowest border-primary shadow-xs ring-1 ring-primary'
+                        : 'bg-surface-container-lowest border-outline-variant hover:bg-surface-container/60 hover:border-outline'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-caption px-2 py-0.5 rounded-sm bg-surface-container font-semibold text-primary shrink-0">
+                          {doc.courseCode}
+                        </span>
+                        <span className="font-semibold text-on-surface text-body-sm truncate">
+                          {doc.courseTitle}
+                        </span>
+                      </div>
+
+                      <Badge
+                        variant={
+                          docConfirmed
+                            ? 'success'
+                            : doc.status === 'Processing'
+                            ? 'warning'
+                            : 'info'
+                        }
+                        className="shrink-0"
+                      >
+                        {docConfirmed ? 'Fully confirmed' : doc.status}
+                      </Badge>
+                    </div>
+
+                    <p className="text-caption text-on-surface-variant line-clamp-2 leading-relaxed">
+                      {doc.title}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-outline-variant/30 text-caption text-on-surface-variant">
+                      <span>{doc.uploadedAt}</span>
+                      <span className="text-primary font-medium flex items-center gap-1">
+                        <span>Inspect</span>
+                        <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Right Column: Document Extraction Detail Panel (lg:col-span-7, sticky on lg) */}
+          <section
+            id={`doc-panel-${selectedDoc.id}`}
+            role="tabpanel"
+            aria-labelledby={`doc-tab-${selectedDoc.id}`}
+            className="lg:col-span-7 lg:sticky lg:top-6 bg-surface-container-lowest border border-outline-variant rounded-md p-5 sm:p-6 space-y-6"
+          >
+            {/* Detail Header */}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-outline-variant/40">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-caption px-2 py-0.5 rounded-sm bg-surface-container font-semibold text-primary">
+                    {selectedDoc.courseCode}
+                  </span>
+                  <Badge variant={isConfirmed ? 'success' : 'info'}>
+                    {isConfirmed ? 'Extraction confirmed' : selectedDoc.status}
+                  </Badge>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-serif font-semibold text-on-surface tracking-tight mt-1">
+                  {selectedDoc.title}
+                </h2>
+                <p className="text-caption text-on-surface-variant">
+                  {selectedDoc.department} &bull; Uploaded by {selectedDoc.uploaderName}
+                </p>
               </div>
-              <h1 className="font-headline-md text-headline-md font-serif text-primary tracking-tight leading-none mb-space-sm">
-                Timetable &amp; document extraction
-              </h1>
-              <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                Upload collegiate notices, examination rotas, and departmental syllabi for automated verification into Oxford's knowledge registry. Validated records are persistently indexed for zero-redundancy schedule harmonization across faculties.
+
+              <div className="shrink-0 flex items-center gap-2">
+                <Button
+                  variant={isConfirmed ? 'secondary' : 'primary'}
+                  disabled={isConfirmed || isConfirming}
+                  onClick={handleConfirmExtraction}
+                >
+                  <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                  <span>{isConfirmed ? 'Confirmed' : isConfirming ? 'Confirming...' : 'Approve extraction'}</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Document Overview Summary */}
+            <div className="bg-surface-container-low rounded-default p-4 border border-outline-variant/40 space-y-1">
+              <span className="text-caption font-semibold text-on-surface block">
+                Syllabus summary
+              </span>
+              <p className="text-body-sm text-on-surface leading-relaxed">
+                {selectedDoc.summary}
               </p>
             </div>
-            <div className="flex items-center gap-space-sm flex-shrink-0">
-              <button
-                type="button"
-                className="group px-space-md py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-ui-functional text-ui-functional transition-all flex items-center gap-space-xs shadow-xs cursor-pointer"
-              >
-                <Icon className="text-[18px] text-secondary group-hover:rotate-180 transition-transform duration-500">
-                  sync
-                </Icon>
-                <span>Re-index Knowledge Cache</span>
-              </button>
-              <button
-                type="button"
-                className="px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-ui-functional text-ui-functional transition-all flex items-center gap-space-xs shadow-sm cursor-pointer"
-              >
-                <Icon className="text-[20px]">upload_file</Icon>
-                <span className="font-semibold">+ Upload Source Document</span>
-              </button>
-            </div>
-          </div>
 
-          {/* CALM SUMMARY METRICS ROW (4 Cards via KpiTile) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md mb-space-xl">
-            <KpiTile
-              label="Ingested Sources"
-              value="42 Documents"
-              subtext="28 Timetables, 14 Examination Rosters across 38 colleges"
-              trend="All divisions synchronized"
-              trendDirection="up"
-              icon="folder_special"
-            />
-            <KpiTile
-              label="Cached Re-Use Efficiency"
-              value="88.4%"
-              subtext="Previously extracted and reused instantly; 0 redundant compute"
-              trend="14.2 sec average verification"
-              trendDirection="neutral"
-              icon="cached"
-            />
-            <KpiTile
-              label="Verification Accuracy"
-              value="97.2% Confidence"
-              subtext="Average extracted field fidelity across Michaelmas Term"
-              trend="Registry standard met"
-              trendDirection="up"
-              icon="verified_user"
-            />
-            <KpiTile
-              label="Pending Human Review"
-              value="3 Fields Flagged"
-              subtext="Venue & room allocation ambiguities requiring dean/tutor verification"
-              trend="1 in current inspection"
-              trendDirection="down"
-              icon="assignment_late"
-            />
-          </div>
+            {/* Extracted Timetable & Session Entities */}
+            <div className="space-y-3">
+              <h3 className="text-body font-semibold text-on-surface">
+                Extracted timetable entities
+              </h3>
 
-          {/* REFINED EDITORIAL DROPZONE */}
-          <div className="relative bg-surface-container-low rounded-2xl p-space-lg mb-space-xl overflow-hidden shadow-xs">
-            <div className="relative z-10 flex flex-col items-center text-center max-w-2xl mx-auto py-space-sm">
-              <div className="w-14 h-14 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center mb-space-sm text-primary">
-                <Icon className="text-[28px]">mark_as_unread</Icon>
-              </div>
-              <h2 className="font-headline-sm text-headline-sm font-serif text-primary mb-space-xs">
-                Drag and drop institutional schedules, forwarded messages, or official registers
-              </h2>
-              <p className="font-body-md text-body-md text-on-surface-variant mb-space-md">
-                Supports PDF examination rolls, forwarded WhatsApp / email schedule bulletins, scanned college rotas, and high-res images (PNG, JPG, TIFF) up to 50MB. Lexi reads unstructured layouts and synthesizes structured calendar events.
-              </p>
-              {/* Academic Source Badges */}
-              <div className="flex flex-wrap justify-center gap-space-xs mb-space-md">
-                <span className="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider">
-                  <Icon className="text-[14px] text-secondary">picture_as_pdf</Icon>
-                  PDF Examination Schedules
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider">
-                  <Icon className="text-[14px] text-secondary">chat</Icon>
-                  Forwarded Chat / WhatsApp Export
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider">
-                  <Icon className="text-[14px] text-secondary">document_scanner</Icon>
-                  Scanned Collegiate Timetables
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-label-caps uppercase tracking-wider">
-                  <Icon className="text-[14px] text-secondary">newspaper</Icon>
-                  Departmental Gazettes
-                </span>
-              </div>
-              <div className="flex items-center gap-space-md">
-                <button
-                  type="button"
-                  className="px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-ui-functional text-ui-functional font-medium shadow-sm transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <Icon className="text-[18px]">add_circle</Icon>
-                  <span>Select Document from Faculty Drive</span>
-                </button>
-                <button
-                  type="button"
-                  className="px-space-md py-2.5 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface font-ui-functional text-ui-functional shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Icon className="text-[18px] text-secondary">content_paste</Icon>
-                  <span>Paste Raw Text / Chat Rota</span>
-                </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {selectedDoc.entities.map((entity, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 bg-surface-container-low rounded-default border border-outline-variant/30 flex flex-col gap-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-caption font-medium text-on-surface-variant">
+                        {entity.label}
+                      </span>
+                      <span className="text-[11px] text-primary font-medium">
+                        {entity.confidence} confidence
+                      </span>
+                    </div>
+                    <span className="text-body-sm font-semibold text-on-surface">
+                      {entity.value}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
 
-          {/* STATE PANELS CONTAINER */}
-          <div className="w-full">
-            {/* STATE 1: POPULATED REVIEW WORKSPACE (Default) */}
-            {lensState === 'review' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
-                {/* LEFT / MASTER TABLE: INGESTION PIPELINE (5 Cols) */}
-                <div className="lg:col-span-5 flex flex-col gap-space-md">
-                  <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-xs">
-                    <div className="flex items-center justify-between pb-space-sm mb-space-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="font-headline-sm text-[20px] font-serif text-primary">Ingestion Pipeline</span>
-                        <span className="bg-surface-container px-2 py-0.5 rounded-full font-label-caps text-label-caps uppercase text-on-surface-variant">
-                          5 Recent
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-on-surface-variant">
-                        <button type="button" title="Filter list" className="p-1 hover:bg-surface-container rounded cursor-pointer">
-                          <Icon className="text-[18px]">filter_list</Icon>
-                        </button>
-                        <button type="button" title="Refresh" className="p-1 hover:bg-surface-container rounded cursor-pointer">
-                          <Icon className="text-[18px]">refresh</Icon>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Document List Items */}
-                    <div className="flex flex-col gap-space-xs">
-                      {/* Row 1: Selected & Active */}
-                      <div
-                        onClick={() => setSelectedDocId('doc-1')}
-                        className={`group p-space-sm rounded-lg relative cursor-pointer shadow-xs transition-all ${
-                          selectedDocId === 'doc-1'
-                            ? 'bg-surface-container-high'
-                            : 'hover:bg-surface-container-low'
-                        }`}
-                      >
-                        <div className="flex items-start gap-space-sm">
-                          <div className="w-10 h-10 rounded-lg bg-secondary-fixed flex items-center justify-center flex-shrink-0 text-on-secondary-fixed">
-                            <Icon className="text-[20px]">picture_as_pdf</Icon>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-ui-functional text-ui-functional font-semibold text-primary truncate">
-                                Balliol &amp; Christ Church Michaelmas Exam Timetable
-                              </span>
-                              {selectedDocId === 'doc-1' && (
-                                <span className="w-2 h-2 rounded-full bg-secondary flex-shrink-0" title="Selected Document"></span>
-                              )}
-                            </div>
-                            <div className="font-label-caps text-[11px] text-on-surface-variant mt-0.5 truncate">
-                              Weeks 7–9 • Exam Schedule • Today, 09:14 AM by Registry
-                            </div>
-                            <div className="flex items-center justify-between mt-2 pt-2">
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-caps text-[10px] uppercase font-bold">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-                                  Needs Review
-                                </span>
-                                <span className="font-label-caps text-[11px] text-secondary font-medium">78% Confidence</span>
-                              </div>
-                              <span className="inline-flex items-center gap-1 text-[11px] font-ui-functional text-on-surface-variant">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary-fixed-dim"></span>
-                                Newly processed
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Row 2: Complete & Cached */}
-                      <div
-                        onClick={() => setSelectedDocId('doc-2')}
-                        className={`group p-space-sm rounded-lg relative cursor-pointer transition-all ${
-                          selectedDocId === 'doc-2'
-                            ? 'bg-surface-container-high'
-                            : 'hover:bg-surface-container-low'
-                        }`}
-                      >
-                        <div className="flex items-start gap-space-sm">
-                          <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 text-on-surface-variant">
-                            <Icon className="text-[20px]">description</Icon>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-ui-functional text-ui-functional font-medium text-primary truncate">
-                                MPLS Engineering Lecture Matrix v4.pdf
-                              </span>
-                              <span className="font-label-caps text-[11px] text-outline">v4.0</span>
-                            </div>
-                            <div className="font-label-caps text-[11px] text-on-surface-variant mt-0.5 truncate">
-                              Lecture Gazette • Yesterday by Senior Proctor
-                            </div>
-                            <div className="flex items-center justify-between mt-2 pt-1.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-label-caps text-[10px] uppercase">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                                Complete
-                              </span>
-                              <span className="inline-flex items-center gap-1 text-[11px] font-ui-functional text-secondary">
-                                <Icon className="text-[13px]">check_circle</Icon>
-                                Previously cached • 99%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Row 3: Forwarded WhatsApp / TXT */}
-                      <div
-                        onClick={() => setSelectedDocId('doc-3')}
-                        className={`group p-space-sm rounded-lg relative cursor-pointer transition-all ${
-                          selectedDocId === 'doc-3'
-                            ? 'bg-surface-container-high'
-                            : 'hover:bg-surface-container-low'
-                        }`}
-                      >
-                        <div className="flex items-start gap-space-sm">
-                          <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 text-on-surface-variant">
-                            <Icon className="text-[20px]">chat</Icon>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-ui-functional text-ui-functional font-medium text-primary truncate">
-                                Balliol WhatsApp Schedule Bulletin • Week 7.txt
-                              </span>
-                            </div>
-                            <div className="font-label-caps text-[11px] text-on-surface-variant mt-0.5 truncate">
-                              Tutorial Rota • 2 days ago via Senior Tutor Desk
-                            </div>
-                            <div className="flex items-center justify-between mt-2 pt-1.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-label-caps text-[10px] uppercase">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                                Complete
-                              </span>
-                              <span className="inline-flex items-center gap-1 text-[11px] font-ui-functional text-on-surface-variant">
-                                <Icon className="text-[13px] text-secondary">cached</Icon>
-                                Registry synced • 94%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Row 4: Scanned Rota */}
-                      <div
-                        onClick={() => setSelectedDocId('doc-4')}
-                        className={`group p-space-sm rounded-lg relative cursor-pointer transition-all ${
-                          selectedDocId === 'doc-4'
-                            ? 'bg-surface-container-high'
-                            : 'hover:bg-surface-container-low'
-                        }`}
-                      >
-                        <div className="flex items-start gap-space-sm">
-                          <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 text-on-surface-variant">
-                            <Icon className="text-[20px]">document_scanner</Icon>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-ui-functional text-ui-functional font-medium text-primary truncate">
-                                Christ Church Divinity Hall Rosters.pdf
-                              </span>
-                            </div>
-                            <div className="font-label-caps text-[11px] text-on-surface-variant mt-0.5 truncate">
-                              Timetable • Nov 18 by Academic Administrator
-                            </div>
-                            <div className="flex items-center justify-between mt-2 pt-1.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-label-caps text-[10px] uppercase">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                                Complete
-                              </span>
-                              <span className="inline-flex items-center gap-1 text-[11px] font-ui-functional text-on-surface-variant">
-                                Reused • 98%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Row 5: In-Flight Process */}
-                      <div
-                        onClick={() => setSelectedDocId('doc-5')}
-                        className={`group p-space-sm rounded-lg relative cursor-pointer transition-all ${
-                          selectedDocId === 'doc-5'
-                            ? 'bg-surface-container-high'
-                            : 'hover:bg-surface-container-low'
-                        }`}
-                      >
-                        <div className="flex items-start gap-space-sm">
-                          <div className="w-10 h-10 rounded-lg bg-secondary-container/30 flex items-center justify-center flex-shrink-0 text-secondary">
-                            <Icon className="text-[20px] animate-spin">autorenew</Icon>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-ui-functional text-ui-functional font-medium text-primary truncate">
-                                St John's College Michaelmas Exam Roll.pdf
-                              </span>
-                            </div>
-                            <div className="font-label-caps text-[11px] text-on-surface-variant mt-0.5 truncate">
-                              Extracting structured records • 62%
-                            </div>
-                            <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden mt-2">
-                              <div className="bg-secondary h-full rounded-full w-3/5"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Academic Authority Notice Box */}
-                  <div className="bg-surface-container-low rounded-xl p-space-md">
-                    <div className="flex items-start gap-space-sm">
-                      <Icon className="text-secondary text-[22px] flex-shrink-0">shield_lock</Icon>
-                      <div className="flex flex-col">
-                        <span className="font-ui-functional text-ui-functional font-semibold text-primary">
-                          InCommon Federation &amp; Oxford Registry Policy
-                        </span>
-                        <p className="font-body-md text-[13px] text-on-surface-variant leading-normal mt-1">
-                          Lexi processes all documents within institutional trust boundaries. Examination rolls undergo verification against Oxford Course Registry data prior to calendar publication.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* RIGHT / DETAIL WORKSPACE: SIDE-BY-SIDE VERIFICATION (7 Cols) */}
-                <div className="lg:col-span-7 bg-surface-container-lowest rounded-xl p-space-lg shadow-xs flex flex-col gap-space-md">
-                  {/* Workspace Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-space-sm gap-space-sm border-b border-outline-variant/30">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-headline-sm text-headline-sm font-serif text-primary leading-tight">
-                          Balliol &amp; Christ Church Michaelmas Exam Schedule
-                        </h3>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-space-xs text-on-surface-variant font-label-caps text-label-caps uppercase mt-1">
-                        <span>PDF Format</span>
-                        <span>•</span>
-                        <span>4.2 MB</span>
-                        <span>•</span>
-                        <span>Ingested 2 hrs ago</span>
-                        <span>•</span>
-                        <span className="text-secondary font-semibold">Newly processed • In-memory cache active</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-space-xs flex-shrink-0">
-                      <span className="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-caps text-label-caps uppercase font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
-                        {isVenueResolved ? 'Fully Verified' : 'Needs Review (1 Ambiguity Flagged)'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Split View inside Workspace: Source Preview vs Structured Academic Data */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-space-md">
-                    {/* Column A: Simulated Authentic Academic Roster Sheet (5 Cols) */}
-                    <div className="md:col-span-5 bg-surface-container-low rounded-lg p-space-sm flex flex-col">
-                      <div className="flex items-center justify-between pb-2 mb-2">
-                        <span className="font-label-caps text-label-caps uppercase text-secondary font-semibold flex items-center gap-1">
-                          <Icon className="text-[14px]">preview</Icon>
-                          Source Roster Sheet
-                        </span>
-                        <span className="font-label-caps text-[11px] text-outline">Page 1 of 3</span>
-                      </div>
-
-                      {/* Authentic Scanned Paper Simulation */}
-                      <div className="relative bg-surface-container rounded p-3 text-ink-black shadow-inner min-h-[380px] font-serif text-[11px] leading-relaxed select-none overflow-hidden border border-outline-variant/40">
-                        {/* Watermark */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
-                          <span className="text-[48px] font-bold tracking-widest uppercase -rotate-25 text-primary">
-                            UNIVERSITY OF OXFORD
-                          </span>
-                        </div>
-                        {/* Sheet Header */}
-                        <div className="text-center pb-2 mb-2 border-b border-outline-variant/30">
-                          <div className="font-bold text-[10px] tracking-wider uppercase">EXAM SCHOOLS OXFORD • MICHAELMAS 2024</div>
-                          <div className="text-[9px] uppercase tracking-widest text-secondary font-sans font-bold">CONFIDENTIAL PROVISIONAL ROSTER</div>
-                          <div className="text-[8px] text-on-surface-variant font-sans mt-0.5">Approved under Proctorial Decree • Week 7 Intake</div>
-                        </div>
-                        {/* Sheet Body Rows */}
-                        <div className="space-y-2 font-mono text-[10px]">
-                          <div className="flex justify-between font-bold">
-                            <span>ENG-320</span>
-                            <span>28-NOV-24</span>
-                            <span>09:30-12:30</span>
-                          </div>
-                          <div className="text-on-surface">Title: Adv. Fluid Dynamics &amp; Navier-Stokes</div>
-                          <div className="text-on-surface">Candidates: 48 (Balliol: 22, ChCh: 26)</div>
-                          {/* Highlight Box Over Flagged Text */}
-                          <div className="relative p-1.5 rounded bg-secondary-container/30 border border-secondary/40">
-                            <div className="flex items-center justify-between text-on-surface">
-                              <span className="font-semibold">Allocated Hall:</span>
-                              <span className="bg-secondary-fixed font-bold text-on-secondary-fixed px-1 rounded">
-                                Schools Hall 3 (South Upper?)
-                              </span>
-                            </div>
-                            <div className="text-[9px] text-secondary font-sans font-medium mt-1">
-                              • Flagged: Room partition suffix ambiguous in physical print
-                            </div>
-                          </div>
-                          <div className="pt-2 text-on-surface">Chief Examiner: Prof. A. Montgomery</div>
-                          <div className="text-on-surface">Invigilators: Dr. H. Vance / Dr. K. Shaw</div>
-                          <div className="text-on-surface-variant text-[9px] italic pt-3">
-                            Note: Candidates must wear subfusc with caps. Desks 1-48 arranged in alphabetical order.
-                          </div>
-                        </div>
-                        {/* Footer Stamp */}
-                        <div className="absolute bottom-2 left-3 right-3 flex justify-between items-end text-[8px] font-sans text-outline">
-                          <span>Ref: OX-ES-2024-M-32</span>
-                          <span className="uppercase font-bold text-secondary">Registry Verified Copy</span>
-                        </div>
-                      </div>
-
-                      <div className="mt-space-sm flex items-center justify-between text-on-surface-variant">
-                        <span className="font-label-caps text-[11px]">OCR Engine: Lexi Rota Parser</span>
-                        <button type="button" className="font-ui-functional text-[12px] text-secondary hover:underline flex items-center gap-0.5 cursor-pointer">
-                          <Icon className="text-[14px]">zoom_in</Icon>
-                          View High-Res Scan
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Column B: Extracted Structured Academic Data (7 Cols) */}
-                    <div className="md:col-span-7 flex flex-col gap-space-sm">
-                      <div className="flex items-center justify-between pb-1">
-                        <span className="font-label-caps text-label-caps uppercase text-secondary font-semibold flex items-center gap-1">
-                          <Icon className="text-[14px]">table_chart</Icon>
-                          Synthesized Academic Records
-                        </span>
-                        <span className="font-label-caps text-[11px] text-on-surface-variant">Registry Target: Michaelmas 2024</span>
-                      </div>
-
-                      {/* Field List / Verification Items */}
-                      <div className="flex flex-col gap-2">
-                        {/* Item 1: Date */}
-                        <div className="p-2.5 rounded-lg bg-surface-container-low flex items-center justify-between">
-                          <div>
-                            <span className="font-label-caps text-[10px] uppercase text-on-surface-variant block">Examination Date</span>
-                            <span className="font-ui-functional text-ui-functional font-semibold text-primary">Thursday, 28 November 2024</span>
-                          </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-[10px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                            99% Verified
-                          </span>
-                        </div>
-
-                        {/* Item 2: Course Code */}
-                        <div className="p-2.5 rounded-lg bg-surface-container-low flex items-center justify-between">
-                          <div>
-                            <span className="font-label-caps text-[10px] uppercase text-on-surface-variant block">Course &amp; Unit Code</span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-ui-functional text-ui-functional font-semibold text-primary">Advanced Fluid Dynamics</span>
-                              <span className="px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-mono text-[11px] font-bold">ENG-320</span>
-                            </div>
-                          </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-[10px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                            100% InCommon Matched
-                          </span>
-                        </div>
-
-                        {/* Item 3: Sitting Time */}
-                        <div className="p-2.5 rounded-lg bg-surface-container-low flex items-center justify-between">
-                          <div>
-                            <span className="font-label-caps text-[10px] uppercase text-on-surface-variant block">Sitting Time &amp; Duration</span>
-                            <span className="font-ui-functional text-ui-functional font-semibold text-primary">09:30 – 12:30 GMT (3.0 hrs)</span>
-                          </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-[10px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                            96% Verified
-                          </span>
-                        </div>
-
-                        {/* Item 4: Venue (FLAGGED FIELD) */}
-                        <div className={`p-3 rounded-lg shadow-xs flex flex-col gap-1.5 transition-all ${
-                          isVenueResolved ? 'bg-surface-container-low' : 'bg-secondary-container/20'
-                        }`}>
-                          <div className="flex items-center justify-between">
-                            <span className="font-label-caps text-[10px] uppercase text-secondary font-bold flex items-center gap-1">
-                              <Icon className="text-[13px]">{isVenueResolved ? 'check_circle' : 'warning'}</Icon>
-                              {isVenueResolved ? 'Resolved Field: Venue Allocation' : 'Flagged Field: Venue & Room Allocation'}
-                            </span>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-label-caps text-[10px] uppercase font-bold ${
-                              isVenueResolved ? 'bg-primary-container text-on-primary-container' : 'bg-secondary text-on-secondary'
-                            }`}>
-                              {isVenueResolved ? '100% Verified' : '78% Low Confidence'}
-                            </span>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="font-ui-functional text-[12px] text-on-surface-variant">Confirmed Registry Venue Description:</label>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={venueInput}
-                                onChange={(e) => setVenueInput(e.target.value)}
-                                className="flex-1 bg-surface-container-lowest font-ui-functional text-ui-functional text-primary px-2.5 py-1.5 rounded outline-none shadow-xs font-semibold focus:ring-1 focus:ring-primary/40"
-                              />
-                              <button
-                                type="button"
-                                onClick={handleResolveVenue}
-                                className={`px-2.5 py-1.5 rounded font-ui-functional text-[12px] transition-all flex items-center gap-1 flex-shrink-0 cursor-pointer ${
-                                  isVenueResolved
-                                    ? 'bg-primary-container text-on-primary-container font-semibold'
-                                    : 'bg-primary text-on-primary hover:bg-primary-container'
-                                }`}
-                              >
-                                <Icon className="text-[14px]">{isVenueResolved ? 'done_all' : 'check'}</Icon>
-                                <span>{isVenueResolved ? 'Verified' : 'Accept'}</span>
-                              </button>
-                            </div>
-                            {!isVenueResolved && (
-                              <p className="font-ui-functional text-[11px] text-secondary mt-0.5">
-                                Source text specifies <span className="font-mono bg-surface-container-lowest px-1 rounded">'Schools Hall 3 (South)'</span>. Please confirm building wing partition before publishing to Oxford Student App.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Item 5: Department */}
-                        <div className="p-2.5 rounded-lg bg-surface-container-low flex items-center justify-between">
-                          <div>
-                            <span className="font-label-caps text-[10px] uppercase text-on-surface-variant block">Department &amp; Faculty Division</span>
-                            <span className="font-ui-functional text-ui-functional font-semibold text-primary">Dept. of Engineering Science (MPLS Division)</span>
-                          </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-[10px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                            99% Matched
-                          </span>
-                        </div>
-
-                        {/* Item 6: Presiding Examiner */}
-                        <div className="p-2.5 rounded-lg bg-surface-container-low flex items-center justify-between">
-                          <div>
-                            <span className="font-label-caps text-[10px] uppercase text-on-surface-variant block">Chief Presiding Examiner</span>
-                            <span className="font-ui-functional text-ui-functional font-semibold text-primary">Prof. Alistair Montgomery</span>
-                          </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface font-label-caps text-[10px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                            94% Verified
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* BOTTOM ACTION BAR IN REVIEW */}
-                  <div className="mt-space-sm pt-space-md flex flex-col sm:flex-row items-center justify-between gap-space-sm border-t border-outline-variant/30">
-                    <div className="flex items-center gap-space-sm w-full sm:w-auto">
-                      <button
-                        type="button"
-                        className="px-space-md py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-ui-functional text-ui-functional transition-all cursor-pointer"
-                      >
-                        Edit All Extracted Values
-                      </button>
-                      <button
-                        type="button"
-                        className="px-space-md py-2 rounded-lg bg-surface-container-low hover:bg-error-container text-error font-ui-functional text-ui-functional transition-all cursor-pointer"
-                      >
-                        Reject Document
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      className="w-full sm:w-auto px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-ui-functional text-ui-functional font-semibold transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                    >
-                      <Icon className="text-[18px]">publish</Icon>
-                      <span>
-                        {isVenueResolved
-                          ? 'Confirm & Publish to Academic Timetable (All Flags Resolved)'
-                          : 'Confirm & Publish to Academic Timetable (1 Flag Pending)'}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STATE 2: IN-FLIGHT PROCESSING */}
-            {lensState === 'processing' && (
-              <div className="flex flex-col items-center justify-center bg-surface-container-lowest rounded-2xl p-space-xl shadow-xs text-center min-h-[460px]">
-                <div className="relative w-20 h-20 mb-space-md flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping"></div>
-                  <div className="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md">
-                    <Icon className="text-[32px] animate-spin">cyclone</Icon>
-                  </div>
-                </div>
-                <div className="font-label-caps text-label-caps uppercase text-secondary tracking-widest mb-1">
-                  In-Memory Parser Active
-                </div>
-                <h3 className="font-headline-md text-headline-md font-serif text-primary mb-space-xs max-w-lg">
-                  Lexi is reading St John's College Exam Roll...
+            {/* Extracted Concept Graph Nodes */}
+            <div className="space-y-3 pt-4 border-t border-outline-variant/40">
+              <div className="flex items-center gap-1.5 text-on-surface">
+                <Layers className="w-4 h-4 text-on-surface-variant shrink-0" aria-hidden="true" />
+                <h3 className="text-body font-semibold text-on-surface">
+                  Extracted curriculum concepts ({selectedDoc.conceptNodes.length})
                 </h3>
-                <p className="font-body-md text-body-md text-on-surface-variant max-w-md mb-space-lg">
-                  Synthesizing calendar structures, resolving departmental course codes with Oxford InCommon Registry, and verifying tutor designations.
-                </p>
-                {/* Stepper Status */}
-                <div className="w-full max-w-md bg-surface-container-low rounded-xl p-space-md shadow-xs">
-                  <div className="space-y-3 font-ui-functional text-ui-functional text-left">
-                    <div className="flex items-center justify-between text-primary">
-                      <span className="flex items-center gap-2">
-                        <Icon className="text-secondary text-[18px]">check_circle</Icon>
-                        High-resolution OCR layout decomposition
-                      </span>
-                      <span className="font-label-caps text-[11px] text-secondary">Complete</span>
-                    </div>
-                    <div className="flex items-center justify-between text-primary">
-                      <span className="flex items-center gap-2">
-                        <Icon className="text-secondary text-[18px] animate-spin">sync</Icon>
-                        Cross-referencing Oxford Division Codes
-                      </span>
-                      <span className="font-label-caps text-[11px] text-secondary">Processing...</span>
-                    </div>
-                    <div className="flex items-center justify-between text-on-surface-variant opacity-60">
-                      <span className="flex items-center gap-2">
-                        <Icon className="text-[18px]">schedule</Icon>
-                        Registry cache population &amp; calendar publish
-                      </span>
-                      <span className="font-label-caps text-[11px]">Queued</span>
-                    </div>
-                  </div>
-                </div>
               </div>
-            )}
 
-            {/* STATE 3: NEEDS REVIEW TRIAGE */}
-            {lensState === 'triage' && (
-              <div className="flex flex-col gap-space-md">
-                <div className="bg-secondary-container/30 rounded-xl p-space-md flex items-center justify-between">
-                  <div className="flex items-center gap-space-sm">
-                    <Icon className="text-secondary text-[24px]">flag</Icon>
-                    <div>
-                      <div className="font-ui-functional text-ui-functional font-bold text-primary">
-                        Low-Confidence Triage Queue (3 Ambiguities across 2 Documents)
-                      </div>
-                      <div className="font-body-md text-[13px] text-on-surface-variant">
-                        Fields below 85% statistical confidence require academic registry sign-off.
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="px-space-md py-1.5 rounded bg-primary text-on-primary font-ui-functional text-ui-functional shadow-xs cursor-pointer"
+              <div className="flex items-center gap-2 flex-wrap">
+                {selectedDoc.conceptNodes.map((concept, cIdx) => (
+                  <span
+                    key={cIdx}
+                    className="px-2.5 py-1 rounded-sm bg-surface-container text-body-sm font-medium text-on-surface border border-outline-variant/30"
                   >
-                    Batch Review Mode
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-space-md">
-                  {/* Triage Item 1 */}
-                  <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-label-caps text-[10px] uppercase text-secondary font-bold">Venue Allocation</span>
-                        <span className="font-label-caps text-[10px] text-secondary bg-secondary-fixed px-1.5 py-0.5 rounded font-bold">
-                          78%
-                        </span>
-                      </div>
-                      <div className="font-ui-functional font-bold text-primary mb-1">Schools Hall 3 (South Annex)</div>
-                      <div className="font-body-md text-[13px] text-on-surface-variant mb-space-sm">
-                        Balliol &amp; Christ Church Exam Roll • ENG-320
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setLensState('review')}
-                      className="w-full py-1.5 rounded bg-surface-container hover:bg-surface-container-high text-primary font-ui-functional text-ui-functional cursor-pointer transition-colors"
-                    >
-                      Verify in Detail →
-                    </button>
-                  </div>
-
-                  {/* Triage Item 2 */}
-                  <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-label-caps text-[10px] uppercase text-secondary font-bold">Invigilator Name</span>
-                        <span className="font-label-caps text-[10px] text-secondary bg-secondary-fixed px-1.5 py-0.5 rounded font-bold">
-                          69%
-                        </span>
-                      </div>
-                      <div className="font-ui-functional font-bold text-primary mb-1">Dr. K. Shaw / Dr. R. Shaw?</div>
-                      <div className="font-body-md text-[13px] text-on-surface-variant mb-space-sm">
-                        Christ Church Divinity Hall • THEO-101
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setLensState('review')}
-                      className="w-full py-1.5 rounded bg-surface-container hover:bg-surface-container-high text-primary font-ui-functional text-ui-functional cursor-pointer transition-colors"
-                    >
-                      Verify in Detail →
-                    </button>
-                  </div>
-
-                  {/* Triage Item 3 */}
-                  <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-label-caps text-[10px] uppercase text-secondary font-bold">Sitting Time Slot</span>
-                        <span className="font-label-caps text-[10px] text-secondary bg-secondary-fixed px-1.5 py-0.5 rounded font-bold">
-                          81%
-                        </span>
-                      </div>
-                      <div className="font-ui-functional font-bold text-primary mb-1">14:00 vs 14:30 GMT</div>
-                      <div className="font-body-md text-[13px] text-on-surface-variant mb-space-sm">
-                        Balliol WhatsApp Bulletin • PHIL-204
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setLensState('review')}
-                      className="w-full py-1.5 rounded bg-surface-container hover:bg-surface-container-high text-primary font-ui-functional text-ui-functional cursor-pointer transition-colors"
-                    >
-                      Verify in Detail →
-                    </button>
-                  </div>
-                </div>
+                    {concept}
+                  </span>
+                ))}
               </div>
-            )}
+            </div>
 
-            {/* STATE 4: PRE-UPLOAD / EMPTY STATE */}
-            {lensState === 'empty' && (
-              <div className="flex flex-col items-center justify-center bg-surface-container-lowest rounded-2xl p-space-xl shadow-xs text-center min-h-[400px]">
-                <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-space-md text-secondary">
-                  <Icon className="text-[36px]">cloud_upload</Icon>
-                </div>
-                <h3 className="font-headline-sm text-headline-sm font-serif text-primary mb-space-xs">
-                  No Ingested Documents Pending Review
-                </h3>
-                <p className="font-body-md text-body-md text-on-surface-variant max-w-md mb-space-lg">
-                  Drag and drop Michaelmas Term schedules or forwarded collegiate notices above to begin extraction and knowledge base caching.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setLensState('review')}
-                  className="px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-ui-functional text-ui-functional transition-all shadow-sm cursor-pointer"
-                >
-                  Load Sample Examination Roll
-                </button>
-              </div>
-            )}
-
-            {/* STATE 5: PROCESSING EXCEPTION / RETRY */}
-            {lensState === 'retry' && (
-              <div className="flex flex-col items-center justify-center bg-surface-container-lowest rounded-2xl p-space-xl shadow-xs text-center min-h-[400px]">
-                <div className="w-16 h-16 rounded-full bg-error-container text-error flex items-center justify-center mb-space-md">
-                  <Icon className="text-[36px]">error_outline</Icon>
-                </div>
-                <div className="font-label-caps text-label-caps uppercase text-error tracking-widest mb-1">
-                  OCR Document Exception
-                </div>
-                <h3 className="font-headline-sm text-headline-sm font-serif text-primary mb-space-xs max-w-lg">
-                  Scanned Image Resolution Too Low for Reliable Rota Synthesis
-                </h3>
-                <p className="font-body-md text-body-md text-on-surface-variant max-w-lg mb-space-lg">
-                  Document <span className="font-mono bg-surface-container px-1 py-0.5 rounded text-on-surface">'Magdalen_Draft_Hall_Matrix.jpg'</span> is under 150 DPI. Tabular cell partitions could not be disambiguated according to Oxford Registry tolerances.
-                </p>
-                <div className="flex items-center gap-space-sm">
-                  <button
-                    type="button"
-                    className="px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-ui-functional text-ui-functional transition-all flex items-center gap-2 cursor-pointer"
-                  >
-                    <Icon className="text-[18px]">refresh</Icon>
-                    <span>Reprocess with Enhanced Optical Filters</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLensState('review')}
-                    className="px-space-md py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-ui-functional text-ui-functional cursor-pointer"
-                  >
-                    Return to Pipeline
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
+            {/* File Audit Meta */}
+            <div className="pt-4 border-t border-outline-variant/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-caption text-on-surface-variant">
+              <span>
+                Document size: {selectedDoc.fileSize} &bull; {selectedDoc.pageCount} pages parsed
+              </span>
+              <span>
+                Indexed under university syllabus registry
+              </span>
+            </div>
+          </section>
         </div>
-      </div>
+      )}
+    </div>
+  );
+}
+
+export default function ExtractionPage() {
+  return (
+    <Suspense fallback={<div className="p-8 max-w-7xl mx-auto min-h-dvh" />}>
+      <ExtractionContent />
+    </Suspense>
   );
 }

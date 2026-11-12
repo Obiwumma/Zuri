@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { StatePreview } from '@/components/ui/StatePreview';
 
 interface CollegeAllocation {
   name: string;
@@ -76,6 +77,12 @@ export default function EnrollmentPage() {
   ];
 
   return (
+    <StatePreview
+      loadingLabel="Loading enrollment records"
+      emptyTitle="No enrollment records found"
+      emptyDescription="Try another search or student level to find enrollment records."
+      errorDescription="Enrollment records could not be loaded. Check your connection and try again."
+    >
     <div className="max-w-max-width mx-auto px-margin-desktop py-space-xl space-y-[var(--spacing-section-gap)] font-body-md text-on-surface">
       {/* PAGE HEADER */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-space-md pb-4 border-b border-outline-variant/20">
@@ -203,5 +210,6 @@ export default function EnrollmentPage() {
         </div>
       </div>
     </div>
+    </StatePreview>
   );
 }

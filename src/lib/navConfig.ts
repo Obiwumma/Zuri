@@ -23,7 +23,7 @@ export const institutionalNavGroups: NavGroup[] = [
     items: [
       { label: 'Students', href: '/students', path: 'students-directory' },
       { label: 'Lecturers', href: '/lecturers', path: 'lecturers-registry' },
-      { label: 'Staff', href: '/students#staff', path: 'staff-directory' },
+      { label: 'Staff', href: '/staff', path: 'staff-directory' },
       { label: 'Roles & Permissions', href: '/roles', path: 'roles-and-permissions' },
     ],
   },

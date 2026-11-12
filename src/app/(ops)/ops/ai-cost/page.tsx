@@ -1,9 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
-import { KpiTile } from '@/components/ui/KpiTile';
-import { DataTable, Column } from '@/components/ui/DataTable';
+import React, { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import {
+  Coins,
+  TrendingDown,
+  Server,
+  Activity,
+  ShieldAlert,
+  SlidersHorizontal,
+  CheckCircle2,
+  RefreshCw,
+  Download,
+  AlertTriangle,
+} from 'lucide-react';
+import {
+  KpiTile,
+  DataTable,
+  Column,
+  Button,
+  Badge,
+  Alert,
+  Skeleton,
+  EmptyState,
+} from '@/components/ui';
+
+export type AiCostPageState = 'default' | 'loading' | 'empty' | 'error';
 
 interface ProviderEconomicsRecord {
   id: string;
@@ -15,7 +37,7 @@ interface ProviderEconomicsRecord {
   grossSpend: string;
   errorRate: string;
   avgTTFT: string;
-  status: string;
+  status: 'Healthy' | 'Optimal' | 'Elevated';
   isOptimal?: boolean;
   isElevated?: boolean;
 }
@@ -23,21 +45,36 @@ interface ProviderEconomicsRecord {
 interface ResilienceEvent {
   id: string;
   badge: string;
-  badgeType: 'primary' | 'secondary' | 'normal';
+  level: 'Notice' | 'Warning' | 'Optimal';
   timestamp: string;
   message: string;
   detail: string;
 }
 
-export default function OpsAiCostPage() {
+function OpsAiCostContent() {
+  const searchParams = useSearchParams();
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
+
+  const [harnessState, setHarnessState] = useState<AiCostPageState>('default');
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('24h');
   const [resolution, setResolution] = useState<'1m' | '5m' | '1h'>('5m');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setToastMessage('Cost metrics and ledger updated from telemetry cluster.');
+      setTimeout(() => setToastMessage(null), 4000);
+    }, 600);
+  };
 
   const providerData: ProviderEconomicsRecord[] = [
     {
       id: 'prov-1',
-      provider: 'Anthropic',
-      models: 'Claude 3.5 Sonnet & 3.5 Haiku',
+      provider: 'Anthropic cluster pool',
+      models: 'Claude 3.5 Sonnet & Haiku',
       reqVol: '182,410',
       inputTokens: '412M',
       outputTokens: '58M',
@@ -48,7 +85,7 @@ export default function OpsAiCostPage() {
     },
     {
       id: 'prov-2',
-      provider: 'OpenAI',
+      provider: 'OpenAI cluster pool',
       models: 'GPT-4o, 4o-mini & Embeddings',
       reqVol: '148,200',
       inputTokens: '284M',
@@ -60,12 +97,12 @@ export default function OpsAiCostPage() {
     },
     {
       id: 'prov-3',
-      provider: 'Internal Triton Cluster',
-      models: 'Mistral 7B / DeepSeek v3 (H100s)',
+      provider: 'Internal Triton cluster',
+      models: 'Mistral 7B / DeepSeek v3 (H100)',
       reqVol: '368,000',
       inputTokens: '192 GPU-hrs',
       outputTokens: '—',
-      grossSpend: '$42.10*',
+      grossSpend: '$42.10',
       errorRate: '0.00%',
       avgTTFT: '85ms',
       status: 'Optimal',
@@ -73,87 +110,125 @@ export default function OpsAiCostPage() {
     },
     {
       id: 'prov-4',
-      provider: 'Document OCR Engine',
-      models: 'Tesseract / PaddleOCR GPU Node',
+      provider: 'Document OCR engine',
+      models: 'PaddleOCR / Tesseract worker node',
       reqVol: '24,100',
       inputTokens: '89.4k pages',
       outputTokens: '—',
       grossSpend: '$19.40',
       errorRate: '0.18%',
       avgTTFT: '840ms',
-      status: 'Elevated Load',
+      status: 'Elevated',
       isElevated: true,
     },
   ];
 
   const providerColumns: Column<ProviderEconomicsRecord>[] = [
     {
-      header: 'Provider / Cluster Pool',
+      header: 'Provider and models',
+      isTitle: true,
       accessor: (row) => (
-        <div>
-          <div className="font-code-md text-code-md text-on-surface font-semibold">{row.provider}</div>
-          <div className="text-outline text-label-sm font-label-sm">{row.models}</div>
+        <div className="flex flex-col py-0.5">
+          <span className="font-medium text-body-sm text-ops-text leading-snug">
+            {row.provider}
+          </span>
+          <span className="text-caption text-ops-text-muted">
+            {row.models}
+          </span>
         </div>
       ),
     },
     {
-      header: 'Req Vol',
+      header: 'Request volume',
+      numeric: true,
+      isKeyField: true,
       accessor: (row) => (
-        <div className="text-right font-code-md text-code-md text-on-surface">{row.reqVol}</div>
+        <span className="font-mono text-body-sm text-ops-text tabular-nums">
+          {row.reqVol}
+        </span>
       ),
     },
     {
-      header: 'Input Tokens',
+      header: 'Input volume',
+      numeric: true,
       accessor: (row) => (
-        <div className={`text-right font-code-md text-code-md ${row.inputTokens.includes('GPU') || row.inputTokens.includes('pages') ? 'text-outline' : 'text-on-surface'}`}>
+        <span className="font-mono text-caption text-ops-text-muted tabular-nums">
           {row.inputTokens}
-        </div>
+        </span>
       ),
     },
     {
-      header: 'Output Tokens',
+      header: 'Output tokens',
+      numeric: true,
       accessor: (row) => (
-        <div className="text-right font-code-md text-code-md text-on-surface">{row.outputTokens}</div>
+        <span className="font-mono text-caption text-ops-text-muted tabular-nums">
+          {row.outputTokens}
+        </span>
       ),
     },
     {
-      header: 'Gross Spend',
+      header: 'Gross spend',
+      numeric: true,
+      isKeyField: true,
       accessor: (row) => (
-        <div className={`text-right font-code-md text-code-md font-bold ${row.isOptimal ? 'text-primary' : 'text-on-surface'}`}>
+        <span
+          className={`font-mono text-body-sm tabular-nums font-semibold ${
+            row.isOptimal ? 'text-ops-accent' : 'text-ops-text'
+          }`}
+        >
           {row.grossSpend}
-        </div>
+        </span>
       ),
     },
     {
-      header: 'Fallback / Err',
+      header: 'Fallback / error',
+      numeric: true,
       accessor: (row) => (
-        <div className={`text-right font-code-md text-code-md ${row.isElevated ? 'text-secondary font-medium' : 'text-primary'}`}>
+        <span
+          className={`font-mono text-caption tabular-nums ${
+            row.isElevated ? 'text-ops-warn font-medium' : 'text-ops-text-muted'
+          }`}
+        >
           {row.errorRate}
-        </div>
+        </span>
       ),
     },
     {
-      header: 'Avg TTFT',
+      header: 'Median TTFT',
+      numeric: true,
       accessor: (row) => (
-        <div className={`text-right font-code-md text-code-md ${row.isOptimal ? 'text-primary font-semibold' : 'text-on-surface'}`}>
+        <span
+          className={`font-mono text-caption tabular-nums ${
+            row.isOptimal ? 'text-ops-accent font-medium' : 'text-ops-text-muted'
+          }`}
+        >
           {row.avgTTFT}
-        </div>
+        </span>
       ),
     },
     {
       header: 'Status',
       accessor: (row) => (
-        <div className="text-right">
+        <span
+          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-caption font-medium select-none ${
+            row.status === 'Optimal'
+              ? 'bg-ops-ok/15 text-ops-ok'
+              : row.status === 'Elevated'
+              ? 'bg-ops-warn/15 text-ops-warn'
+              : 'bg-ops-panel-raised text-ops-text'
+          }`}
+        >
           <span
-            className={`px-2 py-0.5 rounded font-label-sm text-label-sm font-semibold ${
-              row.isElevated
-                ? 'bg-secondary/10 text-secondary'
-                : 'bg-surface-container text-primary'
+            className={`w-1.5 h-1.5 rounded-full ${
+              row.status === 'Optimal'
+                ? 'bg-ops-ok'
+                : row.status === 'Elevated'
+                ? 'bg-ops-warn'
+                : 'bg-ops-accent'
             }`}
-          >
-            {row.status}
-          </span>
-        </div>
+          />
+          {row.status}
+        </span>
       ),
     },
   ];
@@ -161,586 +236,417 @@ export default function OpsAiCostPage() {
   const resilienceEvents: ResilienceEvent[] = [
     {
       id: 'res-1',
-      badge: 'REROUTE RESOLVED',
-      badgeType: 'primary',
+      badge: 'Reroute resolved',
+      level: 'Notice',
       timestamp: '14m ago',
-      message: 'Claude Sonnet rate limit 429 spike → Auto-rerouted 342 reqs to GPT-4o fallback pool.',
-      detail: 'Mesh reaction: 1.4s • Zero user error responses',
+      message: 'Frontier tier rate limit 429 threshold reached. Dispatched 342 requests to standby secondary pool.',
+      detail: 'Reaction time: 1.4s, zero end-user error responses.',
     },
     {
       id: 'res-2',
-      badge: 'SPILLOVER',
-      badgeType: 'normal',
+      badge: 'Spillover',
+      level: 'Optimal',
       timestamp: '1h 22m ago',
-      message: 'Triton worker pod-04 GPU VRAM pressure → Dynamic spillover to Haiku Tier-2 pool.',
-      detail: '128 queries redirected • Model pool load equalized',
+      message: 'Worker accelerator VRAM exceeded 85%. Dynamic spillover to Tier 2 local pool.',
+      detail: '128 queries redirected, cluster load equalized.',
     },
     {
       id: 'res-3',
-      badge: 'EVICTION SWEEP',
-      badgeType: 'normal',
+      badge: 'Cache sweep',
+      level: 'Optimal',
       timestamp: '3h 45m ago',
-      message: 'Embedding cache eviction sweep triggered → 4.2GB warm cache repopulated from S3 tiered storage.',
-      detail: 'Hit recovery latency: 120ms • 100% vector integrity',
+      message: 'Semantic embedding cache sweep completed. 4.2GB warm entries indexed into memory fabric.',
+      detail: 'Hit recovery latency: 120ms.',
     },
     {
       id: 'res-4',
-      badge: 'CIRCUIT BREAKER',
-      badgeType: 'secondary',
+      badge: 'Circuit breaker',
+      level: 'Warning',
       timestamp: '6h 12m ago',
-      message: 'Circuit breaker probe on OpenAI audio API returned 503 → Temporarily disabled Tier 3 voice transcription route.',
-      detail: 'Auto-recovered after 4 healthy synthetic heartbeats',
+      message: 'Circuit breaker probe returned 503 on auxiliary audio API. Disabled voice transcription route.',
+      detail: 'Automatically recovered after 4 consecutive healthy probes.',
     },
   ];
 
   return (
-    <div className="flex flex-col w-full">
-      {/* CONTROL BAR & BREADCRUMB HEADER */}
-      <section className="bg-surface-container-low px-6 py-4 flex flex-col gap-3 border-b border-outline-variant/30">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">
-              <span>OPERATIONS</span>
-              <span className="text-surface-container-highest">/</span>
-              <span>AI INFRASTRUCTURE &amp; ROUTING ENGINE</span>
-              <span className="text-surface-container-highest">/</span>
-              <span className="text-primary font-semibold">METRICS &amp; UNIT COST</span>
-            </div>
-            <div className="flex items-baseline gap-3">
-              <h1 className="font-headline-lg text-headline-lg font-semibold text-on-surface tracking-tight">
-                AI Cost &amp; Request Telemetry
-              </h1>
-              <span className="px-2 py-0.5 rounded bg-surface-container-high text-outline text-label-sm font-label-sm font-medium uppercase tracking-wider">
-                Mesh Core 0.9.4
-              </span>
-            </div>
-            <p className="font-body-sm text-body-sm text-on-surface-variant max-w-3xl">
-              Cluster routing efficiency, semantic cache savings, tiered dispatch breakdown, and provider unit economics across active ingress gateways.
-            </p>
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-[1280px] mx-auto text-ops-text">
+      {/* Dev-only Testing States Harness */}
+      {showHarness && (
+        <aside
+          aria-label="Testing states harness"
+          className="p-2.5 rounded-sm bg-ops-panel border border-ops-border text-caption flex flex-wrap items-center justify-between gap-2"
+        >
+          <div className="flex items-center gap-1.5 font-medium text-ops-text">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-ops-accent" aria-hidden="true" />
+            <span>AI cost states</span>
           </div>
-
-          {/* Action & Filter Ribbon */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Time Range Selector */}
-            <div className="flex items-center bg-surface-container-lowest rounded p-0.5 border border-outline-variant/30">
-              {(['1h', '6h', '24h', '7d', '30d'] as const).map((tr) => (
-                <button
-                  key={tr}
-                  type="button"
-                  onClick={() => setTimeRange(tr)}
-                  className={`px-2.5 py-1 text-label-sm font-label-sm transition-colors rounded cursor-pointer ${
-                    timeRange === tr
-                      ? 'bg-surface-container-high text-primary font-semibold shadow-xs'
-                      : 'text-on-surface-variant hover:text-on-surface'
-                  }`}
-                >
-                  {tr}
-                </button>
-              ))}
-            </div>
-
-            {/* Granularity Selector */}
-            <div className="flex items-center bg-surface-container-lowest rounded p-0.5 border border-outline-variant/30">
-              <span className="px-2 text-outline text-label-sm font-label-sm">RES:</span>
-              {(['1m', '5m', '1h'] as const).map((res) => (
-                <button
-                  key={res}
-                  type="button"
-                  onClick={() => setResolution(res)}
-                  className={`px-2 py-1 text-label-sm font-label-sm rounded cursor-pointer ${
-                    resolution === res
-                      ? 'bg-surface-container-high text-on-surface font-semibold'
-                      : 'text-on-surface-variant hover:text-on-surface'
-                  }`}
-                >
-                  {res}
-                </button>
-              ))}
-            </div>
-
-            {/* Auto Refresh */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest rounded text-on-surface text-label-sm font-label-sm border border-outline-variant/30">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              <span>AUTO-REFRESH 10s</span>
-            </div>
-
-            {/* Export CTA */}
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded font-code-md text-code-md transition-colors cursor-pointer border border-outline-variant/30"
+              onClick={() => setHarnessState('default')}
+              className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                harnessState === 'default'
+                  ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                  : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+              }`}
             >
-              <Icon className="text-[16px] text-outline">file_download</Icon>
-              <span>Ledger (CSV/JSON)</span>
+              Default
+            </button>
+            <button
+              type="button"
+              onClick={() => setHarnessState('loading')}
+              className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                harnessState === 'loading'
+                  ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                  : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+              }`}
+            >
+              Loading
+            </button>
+            <button
+              type="button"
+              onClick={() => setHarnessState('empty')}
+              className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                harnessState === 'empty'
+                  ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                  : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+              }`}
+            >
+              Empty
+            </button>
+            <button
+              type="button"
+              onClick={() => setHarnessState('error')}
+              className={`px-2 py-0.5 rounded-xs text-caption transition-colors cursor-pointer ${
+                harnessState === 'error'
+                  ? 'bg-ops-accent-strong text-ops-canvas font-semibold'
+                  : 'text-ops-text-muted hover:text-ops-text hover:bg-ops-panel-raised'
+              }`}
+            >
+              Error
             </button>
           </div>
+        </aside>
+      )}
+
+      {/* Header section (Analytics template: header + date-range filter) */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-ops-border/60">
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-semibold text-ops-text tracking-tight font-sans">
+            AI cost and requests
+          </h1>
+          <p className="text-body-sm text-ops-text-muted mt-1">
+            Cluster routing efficiency, semantic cache savings, and inference spend.
+          </p>
         </div>
 
-        {/* Global Zero Inference Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 bg-surface-container-high rounded mt-1 border border-outline-variant/30">
-          <div className="flex items-center gap-2.5">
-            <Icon className="text-primary text-[18px]">verified</Icon>
-            <span className="font-code-md text-code-md text-on-surface font-medium">Global Zero-Inference Interception Rate:</span>
-            <span className="font-code-md text-code-md font-bold text-primary">68.4%</span>
-            <span className="text-on-surface-variant font-body-sm text-body-sm">(Tiers 0–1 bypass frontier LLMs completely)</span>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Date-range segmented switch */}
+          <div className="flex items-center bg-ops-panel rounded-sm border border-ops-border p-0.5">
+            {(['1h', '6h', '24h', '7d', '30d'] as const).map((tr) => (
+              <button
+                key={tr}
+                type="button"
+                onClick={() => setTimeRange(tr)}
+                className={`px-2.5 py-1 rounded-xs text-caption cursor-pointer transition-colors ${
+                  timeRange === tr
+                    ? 'bg-ops-panel-raised text-ops-text font-semibold'
+                    : 'text-ops-text-muted hover:text-ops-text'
+                }`}
+              >
+                {tr}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-4 text-outline font-label-sm text-label-sm">
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> Ingress Healthy
-            </span>
-            <span>•</span>
-            <span className="font-code-md text-code-md text-on-surface">627.5k deterministic</span>
-            <span>•</span>
-            <span className="font-code-md text-code-md text-on-surface">404.1k semantic</span>
-            <span>•</span>
-            <span className="text-primary font-semibold">-$1,842.20 vs naive raw API</span>
-          </div>
-        </div>
-      </section>
 
-      {/* 1. TOP KPI TELEMETRY LEDGER (5 Cards via KpiTile) */}
-      <section className="p-6 bg-surface-container-lowest">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
-          <KpiTile
-            label="Total Volume (30d)"
-            value="48.2M reqs"
-            trend="+8.4%"
-            trendDirection="up"
-            icon="bar_chart"
-            subtext="p95 Latency 142ms"
-          />
-          <KpiTile
-            label="Today's Ingress"
-            value="1,642,890"
-            trend="LIVE"
-            trendDirection="up"
-            icon="trending_up"
-            subtext="Throughput 2,380 req/s (pk 3,140)"
-          />
-          <KpiTile
-            label="Composite Hit Rate"
-            value="62.8%"
-            trend="+3.2% vs target"
-            trendDirection="up"
-            icon="target"
-            subtext="Saved Invocations: 1,031,735"
-          />
-          <KpiTile
-            label="Provider Fallback"
-            value="0.041%"
-            trend="Nominal"
-            trendDirection="neutral"
-            icon="alt_route"
-            subtext="Reroutes (24h): 674 events"
-          />
-          <KpiTile
-            label="AI Spend Run Rate"
-            value="$418.20"
-            trend="-$18.4k Save"
-            trendDirection="up"
-            icon="payments"
-            subtext="Projected Month: $12,850/mo"
-          />
+          {/* Refresh action */}
+          <Button
+            variant="secondary"
+            onClick={handleRefresh}
+            isLoading={isRefreshing}
+            className="w-full sm:w-auto h-11 sm:h-10 text-body-sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
-      </section>
+      </header>
 
-      {/* 2. MAIN ROUTING EFFICIENCY & TIERED DISPATCH */}
-      <section className="px-6 pb-6 bg-surface-container-lowest flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <Icon className="text-primary text-[20px]">alt_route</Icon>
-            <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">
-              Routing Efficiency &amp; Tiered Dispatch Telemetry
-            </h2>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <Alert
+          variant="success"
+          description={toastMessage}
+        />
+      )}
+
+      {/* State: Error */}
+      {harnessState === 'error' && (
+        <Alert
+          variant="error"
+          title="Failed to retrieve AI telemetry"
+          description="Unable to fetch provider token billing and routing logs. Please check cluster mesh status and retry."
+          action={<Button variant="secondary" onClick={() => setHarnessState('default')}>Try again</Button>}
+        />
+      )}
+
+      {/* State: Loading */}
+      {harnessState === 'loading' && (
+        <div className="flex flex-col gap-6" aria-busy="true">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Skeleton className="h-28 rounded-md bg-ops-panel" />
+            <Skeleton className="h-28 rounded-md bg-ops-panel" />
+            <Skeleton className="h-28 rounded-md bg-ops-panel" />
+            <Skeleton className="h-28 rounded-md bg-ops-panel" />
           </div>
-          <div className="flex items-center gap-3 font-code-md text-code-md flex-wrap">
-            <div className="flex items-center gap-1.5 text-on-surface-variant">
-              <span className="w-2.5 h-2.5 rounded bg-primary"></span>
-              <span>T0: Rule (38.2%)</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-on-surface-variant">
-              <span className="w-2.5 h-2.5 rounded bg-tertiary"></span>
-              <span>T1: Vector (24.6%)</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-on-surface-variant">
-              <span className="w-2.5 h-2.5 rounded bg-primary-container"></span>
-              <span>T2: Edge 7B (22.4%)</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-on-surface-variant">
-              <span className="w-2.5 h-2.5 rounded bg-secondary"></span>
-              <span>T3: Mid (11.8%)</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-on-surface-variant">
-              <span className="w-2.5 h-2.5 rounded bg-error"></span>
-              <span>T4: Frontier (3.0%)</span>
-            </div>
-          </div>
+          <Skeleton className="h-72 rounded-md bg-ops-panel" />
+          <Skeleton className="h-64 rounded-md bg-ops-panel" />
         </div>
+      )}
 
-        {/* Telemetry Multi-pane Container */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Left: Stacked Area / Distribution Chart Visualizer */}
-          <div className="lg:col-span-5 bg-surface-container-low p-4 rounded flex flex-col justify-between border border-outline-variant/30">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex flex-col">
-                <span className="font-label-md text-label-md text-on-surface font-semibold">24-Hour Tier Ingress Distribution</span>
-                <span className="font-body-sm text-body-sm text-outline">Hourly stacked request volume (k reqs/hour)</span>
+      {/* State: Empty */}
+      {harnessState === 'empty' && (
+        <EmptyState
+          icon={Coins}
+          title="No request telemetry recorded"
+          description="There are no AI invocation or token billing records matching this time window."
+          action={
+            <Button variant="secondary" onClick={() => setHarnessState('default')}>
+              Reset to active window
+            </Button>
+          }
+        />
+      )}
+
+      {/* State: Default */}
+      {harnessState === 'default' && (
+        <>
+          {/* Section: 4 KPI Tiles */}
+          <section
+            aria-label="Cost and request KPIs"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+          >
+            <KpiTile
+              label="Today's request ingress"
+              value="1,642,890"
+              delta={{ value: '2,380 req/s live', direction: 'up' }}
+              icon={Activity}
+              subtext="Throughput peak: 3,140 req/s"
+              className="bg-ops-panel border-ops-border text-ops-text"
+            />
+            <KpiTile
+              label="Cache interception rate"
+              value="68.4%"
+              delta={{ value: '+4.2% vs target', direction: 'up' }}
+              icon={TrendingDown}
+              subtext="1,031,735 frontier LLM calls bypassed"
+              className="bg-ops-panel border-ops-border text-ops-text"
+            />
+            <KpiTile
+              label="Gross spend (24h)"
+              value="$418.20"
+              delta={{ value: '-$1,842 saved', direction: 'up' }}
+              icon={Coins}
+              subtext="Estimated month: $12,850"
+              className="bg-ops-panel border-ops-border text-ops-text"
+            />
+            <KpiTile
+              label="Provider fallback rate"
+              value="0.04%"
+              delta={{ value: '674 reroutes', direction: 'neutral' }}
+              icon={ShieldAlert}
+              subtext="Zero user-facing 5xx disruptions"
+              className="bg-ops-panel border-ops-border text-ops-text"
+            />
+          </section>
+
+          {/* Section: 1 Headline Chart (Analytics template: 1 headline chart) */}
+          <section className="bg-ops-panel rounded-md border border-ops-border p-5 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-body-sm font-semibold text-ops-text">
+                  Tiered routing volume and interception distribution
+                </h2>
+                <p className="text-caption text-ops-text-muted mt-0.5">
+                  Hourly request distribution across deterministic rules, semantic cache, and frontier inference.
+                </p>
               </div>
-              <span className="font-code-md text-code-md text-on-surface-variant">Peak: 124.8k/hr</span>
-            </div>
 
-            {/* Stacked Telemetry Bars (24h) */}
-            <div className="w-full h-52 bg-surface-container-lowest rounded p-3 flex flex-col justify-end border border-outline-variant/30">
-              <div className="h-40 w-full flex items-end justify-between gap-1">
-                {[62, 55, 48, 42, 40, 47, 58, 70, 82, 92, 98, 100, 96, 91, 94, 89, 85, 80, 74, 72, 68, 65, 61, 58].map((h, i) => (
-                  <div key={i} className="flex-1 flex flex-col-reverse rounded-t overflow-hidden gap-[1px]" style={{ height: `${h}%` }}>
-                    <div className="bg-primary h-[39%]"></div>
-                    <div className="bg-tertiary h-[24%]"></div>
-                    <div className="bg-primary-container h-[22%]"></div>
-                    <div className="bg-secondary h-[11%]"></div>
-                    <div className="bg-error h-[4%]"></div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between text-outline font-code-md text-code-md mt-2 pt-1 border-t border-surface-container">
-                <span>00:00</span>
-                <span>06:00</span>
-                <span>12:00 PEAK</span>
-                <span>18:00</span>
-                <span>NOW</span>
+              {/* Chart Legend */}
+              <div className="flex flex-wrap items-center gap-3 text-caption">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-ops-accent" />
+                  <span className="text-ops-text-muted">Tier 0 Deterministic (38%)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-ops-ok" />
+                  <span className="text-ops-text-muted">Tier 1 Semantic cache (30%)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-[#60a5fa]" />
+                  <span className="text-ops-text-muted">Tier 2 Local accelerator (22%)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-ops-warn" />
+                  <span className="text-ops-text-muted">Tier 3 Frontier cloud (10%)</span>
+                </div>
               </div>
             </div>
 
-            <div className="mt-3 p-2.5 bg-surface-container rounded flex items-center justify-between border border-outline-variant/30">
-              <div className="flex items-center gap-2">
-                <Icon className="text-primary text-[18px]">query_stats</Icon>
-                <span className="font-body-sm text-body-sm text-on-surface">Efficiency Invariant:</span>
-              </div>
-              <span className="font-code-md text-code-md text-primary font-semibold">85.2% Traffic ≤ Tier 2 (Saved +$782.40/day)</span>
-            </div>
-          </div>
+            {/* SVG Stacked Bar Chart */}
+            <div className="w-full h-48 sm:h-56 relative flex items-end pt-6">
+              <svg
+                className="w-full h-full overflow-visible"
+                viewBox="0 0 800 160"
+                preserveAspectRatio="none"
+                aria-label="Hourly stacked routing volume graph"
+              >
+                {/* Horizontal reference grid lines */}
+                <line x1="0" y1="0" x2="800" y2="0" stroke="var(--ops-border)" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="0" y1="40" x2="800" y2="40" stroke="var(--ops-border)" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="0" y1="80" x2="800" y2="80" stroke="var(--ops-border)" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="0" y1="120" x2="800" y2="120" stroke="var(--ops-border)" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="0" y1="160" x2="800" y2="160" stroke="var(--ops-border)" strokeWidth="1" />
 
-          {/* Right: Tier Breakdown Table */}
-          <div className="lg:col-span-7 bg-surface-container-low rounded overflow-hidden flex flex-col justify-between border border-outline-variant/30">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-surface-container font-label-sm text-label-sm text-outline uppercase tracking-wider border-b border-outline-variant/30">
-                    <th className="py-2.5 px-4 font-semibold">Tier &amp; Mechanism</th>
-                    <th className="py-2.5 px-3 font-semibold text-right">Volume</th>
-                    <th className="py-2.5 px-3 font-semibold text-right">Share</th>
-                    <th className="py-2.5 px-3 font-semibold text-right">Latency</th>
-                    <th className="py-2.5 px-3 font-semibold text-right">Unit Cost</th>
-                    <th className="py-2.5 px-4 font-semibold text-right">Efficiency Reduction</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-container font-body-sm text-body-sm">
-                  <tr className="hover:bg-surface-container-high/40 transition-colors">
-                    <td className="py-2.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded bg-primary"></span>
-                        <div>
-                          <span className="font-code-md text-code-md text-on-surface font-semibold">Tier 0</span>
-                          <span className="text-outline text-label-sm font-label-sm ml-1.5">Deterministic &amp; Rule Cache</span>
-                        </div>
-                      </div>
-                      <div className="text-outline text-label-sm font-label-sm pl-4">Exact query hash, syllabus index, template response</div>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">627.5k</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-primary font-semibold">38.2%</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">1.8ms</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">$0.00000</td>
-                    <td className="py-2.5 px-4 text-right">
-                      <span className="px-2 py-0.5 rounded bg-surface-container text-primary font-code-md text-code-md font-semibold">100% Free</span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-high/40 transition-colors">
-                    <td className="py-2.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded bg-tertiary"></span>
-                        <div>
-                          <span className="font-code-md text-code-md text-on-surface font-semibold">Tier 1</span>
-                          <span className="text-outline text-label-sm font-label-sm ml-1.5">Semantic Vector &amp; Context Cache</span>
-                        </div>
-                      </div>
-                      <div className="text-outline text-label-sm font-label-sm pl-4">Qdrant NVMe, score ≥ 0.96, shared institutional knowledge</div>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">404.1k</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-tertiary font-semibold">24.6%</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">18ms</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">$0.00002</td>
-                    <td className="py-2.5 px-4 text-right">
-                      <span className="px-2 py-0.5 rounded bg-surface-container text-tertiary font-code-md text-code-md">99.2% Reduced</span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-high/40 transition-colors">
-                    <td className="py-2.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded bg-primary-container"></span>
-                        <div>
-                          <span className="font-code-md text-code-md text-on-surface font-semibold">Tier 2</span>
-                          <span className="text-outline text-label-sm font-label-sm ml-1.5">Edge Classifier / Distilled 7B</span>
-                        </div>
-                      </div>
-                      <div className="text-outline text-label-sm font-label-sm pl-4">Local Triton cluster, fast intent triage &amp; rubric evaluation</div>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">368.0k</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-primary-container font-semibold">22.4%</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">110ms</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">$0.00018</td>
-                    <td className="py-2.5 px-4 text-right">
-                      <span className="px-2 py-0.5 rounded bg-surface-container text-on-surface font-code-md text-code-md">91.0% Reduced</span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-high/40 transition-colors">
-                    <td className="py-2.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded bg-secondary"></span>
-                        <div>
-                          <span className="font-code-md text-code-md text-on-surface font-semibold">Tier 3</span>
-                          <span className="text-outline text-label-sm font-label-sm ml-1.5">Mid Frontier Reasoner</span>
-                        </div>
-                      </div>
-                      <div className="text-outline text-label-sm font-label-sm pl-4">Claude 3.5 Haiku / GPT-4o-mini academic feedback</div>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">193.8k</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-secondary font-semibold">11.8%</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">480ms</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">$0.00140</td>
-                    <td className="py-2.5 px-4 text-right">
-                      <span className="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-code-md text-code-md">Standard</span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-high/40 transition-colors">
-                    <td className="py-2.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded bg-error"></span>
-                        <div>
-                          <span className="font-code-md text-code-md text-on-surface font-semibold">Tier 4</span>
-                          <span className="text-outline text-label-sm font-label-sm ml-1.5">Frontier Deep Synthesis</span>
-                        </div>
-                      </div>
-                      <div className="text-outline text-label-sm font-label-sm pl-4">Claude 3.5 Sonnet / GPT-4o multi-doc curriculum reasoning</div>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">49.3k</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-error font-semibold">3.0%</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">1,420ms</td>
-                    <td className="py-2.5 px-3 text-right font-code-md text-code-md text-on-surface">$0.00620</td>
-                    <td className="py-2.5 px-4 text-right">
-                      <span className="px-2 py-0.5 rounded bg-error/10 text-error font-code-md text-code-md font-semibold">Monitored</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 bg-surface-container flex items-center justify-between text-outline font-label-sm text-label-sm border-t border-outline-variant/30">
-              <span>SUM 24H: 1,642,890 REQUESTS DISPATCHED</span>
-              <span className="font-code-md text-code-md text-on-surface">Avg Ingress Overhead: 3.4ms | Routing Mesh v2.4</span>
-            </div>
-          </div>
-        </div>
-      </section>
+                {/* 16 hourly stacked bars */}
+                {[
+                  { x: 20, t0: 35, t1: 28, t2: 20, t3: 9 },
+                  { x: 70, t0: 38, t1: 30, t2: 22, t3: 11 },
+                  { x: 120, t0: 42, t1: 32, t2: 24, t3: 12 },
+                  { x: 170, t0: 48, t1: 36, t2: 28, t3: 14 },
+                  { x: 220, t0: 55, t1: 42, t2: 30, t3: 15 },
+                  { x: 270, t0: 62, t1: 48, t2: 34, t3: 16 },
+                  { x: 320, t0: 68, t1: 52, t2: 36, t3: 18 },
+                  { x: 370, t0: 72, t1: 54, t2: 38, t3: 19 },
+                  { x: 420, t0: 70, t1: 52, t2: 36, t3: 17 },
+                  { x: 470, t0: 66, t1: 50, t2: 34, t3: 16 },
+                  { x: 520, t0: 58, t1: 44, t2: 30, t3: 15 },
+                  { x: 570, t0: 52, t1: 40, t2: 26, t3: 13 },
+                  { x: 620, t0: 46, t1: 34, t2: 24, t3: 11 },
+                  { x: 670, t0: 40, t1: 30, t2: 22, t3: 10 },
+                  { x: 720, t0: 36, t1: 28, t2: 20, t3: 9 },
+                  { x: 770, t0: 34, t1: 26, t2: 18, t3: 8 },
+                ].map((bar, i) => {
+                  const bWidth = 24;
+                  const scale = 0.82;
+                  const h0 = bar.t0 * scale;
+                  const h1 = bar.t1 * scale;
+                  const h2 = bar.t2 * scale;
+                  const h3 = bar.t3 * scale;
 
-      {/* 3. DEDICATED CACHE MODULE (5 Sub-Engines) */}
-      <section className="p-6 bg-surface-container-lowest">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2.5">
-            <Icon className="text-primary text-[20px]">layers</Icon>
-            <div>
-              <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">
-                Semantic &amp; Pipeline Cache Architecture
-              </h2>
-              <p className="font-body-sm text-body-sm text-outline">
-                Multi-tier memory, embedding deduplication, and AST document processing cache nodes
+                  const y0 = 160 - h0;
+                  const y1 = y0 - h1;
+                  const y2 = y1 - h2;
+                  const y3 = y2 - h3;
+
+                  return (
+                    <g key={i}>
+                      <rect x={bar.x - bWidth / 2} y={y0} width={bWidth} height={h0} fill="var(--ops-accent)" rx="1" />
+                      <rect x={bar.x - bWidth / 2} y={y1} width={bWidth} height={h1} fill="var(--ops-ok)" />
+                      <rect x={bar.x - bWidth / 2} y={y2} width={bWidth} height={h2} fill="#60a5fa" />
+                      <rect x={bar.x - bWidth / 2} y={y3} width={bWidth} height={h3} fill="var(--ops-warn)" rx="1" />
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* X-axis hourly labels */}
+            <div className="flex items-center justify-between font-mono text-caption text-ops-text-muted px-2">
+              <span>00:00 UTC</span>
+              <span>04:00</span>
+              <span>08:00</span>
+              <span>12:00</span>
+              <span>16:00</span>
+              <span>20:00</span>
+              <span>23:59</span>
+            </div>
+
+            {/* Insight line in plain language (Analytics template requirement) */}
+            <div className="p-3 rounded-sm bg-ops-panel-raised border border-ops-border flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-ops-accent shrink-0 mt-0.5" />
+              <p className="text-body-sm text-ops-text">
+                <strong className="text-ops-accent font-medium">Interception insight:</strong> Cache
+                interception and local routing avoided <strong>$1,842.20</strong> in upstream API costs
+                over the last 24 hours, maintaining a median P95 response time under 142ms.
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded bg-surface-container text-primary font-code-md text-code-md font-medium border border-outline-variant/30">
-              Active Cache Layer: 5/5 Synchronized
-            </span>
-          </div>
-        </div>
+          </section>
 
-        {/* 5 High-Density Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
-          {/* Cache Node 1 */}
-          <div className="bg-surface-container-low p-4 rounded flex flex-col justify-between border border-outline-variant/30 hover:bg-surface-container/60 transition-colors">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-label-sm text-label-sm text-outline uppercase font-semibold">1. Ingress Request Cache</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              </div>
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="font-headline-md text-headline-md font-bold text-on-surface font-code-lg">28.4%</span>
-                <span className="font-code-md text-code-md text-on-surface-variant">466.5k reqs</span>
+          {/* Section: Supporting Breakdown Table (Analytics template: supporting breakdown table) */}
+          <section className="bg-ops-panel rounded-md border border-ops-border overflow-hidden">
+            <div className="p-4 border-b border-ops-border/60 flex items-center justify-between">
+              <div>
+                <h2 className="text-body-sm font-semibold text-ops-text">
+                  Provider economics and cluster pool breakdown
+                </h2>
+                <p className="text-caption text-ops-text-muted">
+                  Billed volumes, gross API spend, and token dispatch telemetry.
+                </p>
               </div>
             </div>
-            <div className="space-y-1.5 pt-2 border-t border-surface-container font-code-md text-code-md">
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>Interval</span>
-                <span className="text-on-surface">15m sliding</span>
-              </div>
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>Efficiency</span>
-                <span className="text-primary font-semibold">Zero GPU compute</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Cache Node 2 */}
-          <div className="bg-surface-container-low p-4 rounded flex flex-col justify-between border border-outline-variant/30 hover:bg-surface-container/60 transition-colors">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-label-sm text-label-sm text-outline uppercase font-semibold">2. Retrieval Cache (Qdrant)</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              </div>
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="font-headline-md text-headline-md font-bold text-primary font-code-lg">71.2%</span>
-                <span className="font-code-md text-code-md text-on-surface-variant">1.16M lookups</span>
-              </div>
-            </div>
-            <div className="space-y-1.5 pt-2 border-t border-surface-container font-code-md text-code-md">
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>Footprint</span>
-                <span className="text-on-surface">18.4 GB NVMe</span>
-              </div>
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>Vector Savings</span>
-                <span className="text-primary font-semibold">-$142/day</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Cache Node 3 */}
-          <div className="bg-surface-container-low p-4 rounded flex flex-col justify-between border border-outline-variant/30 hover:bg-surface-container/60 transition-colors">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-label-sm text-label-sm text-outline uppercase font-semibold">3. Embedding Token Cache</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              </div>
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="font-headline-md text-headline-md font-bold text-primary font-code-lg">84.6%</span>
-                <span className="font-code-md text-code-md text-on-surface-variant">1.38M tokens</span>
-              </div>
-            </div>
-            <div className="space-y-1.5 pt-2 border-t border-surface-container font-code-md text-code-md">
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>Target Model</span>
-                <span className="text-on-surface">text-embed-3-sm</span>
-              </div>
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>Reuse Level</span>
-                <span className="text-primary font-semibold">99.8% Near-Peak</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Cache Node 4 */}
-          <div className="bg-surface-container-low p-4 rounded flex flex-col justify-between border border-outline-variant/30 hover:bg-surface-container/60 transition-colors">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-label-sm text-label-sm text-outline uppercase font-semibold">4. Doc &amp; OCR AST Cache</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-              </div>
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="font-headline-md text-headline-md font-bold text-on-surface font-code-lg">59.1%</span>
-                <span className="font-code-md text-code-md text-on-surface-variant">14.2k slices</span>
-              </div>
-            </div>
-            <div className="space-y-1.5 pt-2 border-t border-surface-container font-code-md text-code-md">
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>OCR Queue Offset</span>
-                <span className="text-on-surface">-42% load</span>
-              </div>
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>State</span>
-                <span className="text-secondary font-semibold">Bottleneck Prevented</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Cache Node 5 */}
-          <div className="bg-surface-container-low p-4 rounded flex flex-col justify-between border border-outline-variant/30 hover:bg-surface-container/60 transition-colors">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-label-sm text-label-sm text-outline uppercase font-semibold">5. Shared Knowledge Reuse</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              </div>
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="font-headline-md text-headline-md font-bold text-on-surface font-code-lg">43.7%</span>
-                <span className="font-code-md text-code-md text-on-surface-variant">717.9k dedup</span>
-              </div>
-            </div>
-            <div className="space-y-1.5 pt-2 border-t border-surface-container font-code-md text-code-md">
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>Boundary</span>
-                <span className="text-on-surface">Cryptographic</span>
-              </div>
-              <div className="flex justify-between text-outline text-label-sm font-label-sm">
-                <span>Impact</span>
-                <span className="text-primary font-semibold">Reduces Redundant LLM</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. COST & PROVIDER UNIT ECONOMICS + RESILIENCE LOG */}
-      <section className="p-6 bg-surface-container-lowest">
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-          {/* Provider Ledger Table (Col 8 via DataTable) */}
-          <div className="xl:col-span-8 bg-surface-container-low rounded overflow-hidden flex flex-col justify-between border border-outline-variant/30 shadow-xs">
             <DataTable
-              title="Provider Unit Economics & Ingress Ledger"
-              subtitle="Active Ingress Tokens: 696M / 24h • Gross Spend Incurred: $418.20 / 24h"
               columns={providerColumns}
               data={providerData}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(row) => row.id}
+              className="border-0 rounded-none"
             />
-          </div>
+          </section>
 
-          {/* Fallback & Resilience Event Stream (Col 4) */}
-          <div className="xl:col-span-4 bg-surface-container-low rounded overflow-hidden flex flex-col justify-between border border-outline-variant/30 shadow-xs">
-            <div>
-              <div className="px-4 py-3 bg-surface-container flex items-center justify-between border-b border-outline-variant/30">
-                <div className="flex items-center gap-2">
-                  <Icon className="text-outline text-[18px]">security_update_warning</Icon>
-                  <span className="font-label-md text-label-md font-semibold text-on-surface uppercase tracking-wider">
-                    Fallback &amp; Resilience Stream
+          {/* Section: Resilience and Circuit Breakers Ledger */}
+          <section className="bg-ops-panel rounded-md border border-ops-border p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between pb-2 border-b border-ops-border/60">
+              <h2 className="text-body-sm font-semibold text-ops-text">
+                Routing resilience and circuit breaker activity
+              </h2>
+              <span className="font-mono text-caption text-ops-text-muted">
+                Mesh router v0.9.4
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {resilienceEvents.map((evt) => (
+                <div
+                  key={evt.id}
+                  className="p-3 rounded-sm bg-ops-panel-raised border border-ops-border/70 flex flex-col justify-between gap-1.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-caption font-medium select-none ${
+                        evt.level === 'Warning'
+                          ? 'bg-ops-warn/15 text-ops-warn'
+                          : evt.level === 'Optimal'
+                          ? 'bg-ops-ok/15 text-ops-ok'
+                          : 'bg-ops-accent/15 text-ops-accent'
+                      }`}
+                    >
+                      {evt.badge}
+                    </span>
+                    <span className="font-mono text-caption text-ops-text-muted tabular-nums">
+                      {evt.timestamp}
+                    </span>
+                  </div>
+                  <p className="text-body-sm text-ops-text font-medium leading-snug">
+                    {evt.message}
+                  </p>
+                  <span className="text-caption text-ops-text-muted">
+                    {evt.detail}
                   </span>
                 </div>
-                <span className="w-2 h-2 rounded-full bg-primary"></span>
-              </div>
-              <div className="divide-y divide-surface-container font-body-sm text-body-sm">
-                {resilienceEvents.map((evt) => (
-                  <div key={evt.id} className="p-3.5 hover:bg-surface-container transition-colors">
-                    <div className="flex items-center justify-between mb-1.5 font-label-sm text-label-sm">
-                      <span
-                        className={`px-1.5 py-0.5 rounded font-code-md font-semibold ${
-                          evt.badgeType === 'primary'
-                            ? 'bg-primary/10 text-primary'
-                            : evt.badgeType === 'secondary'
-                            ? 'bg-secondary/10 text-secondary'
-                            : 'bg-surface-container text-on-surface-variant'
-                        }`}
-                      >
-                        {evt.badge}
-                      </span>
-                      <span className="font-code-md text-code-md text-outline">{evt.timestamp}</span>
-                    </div>
-                    <p className="font-body-sm text-body-sm text-on-surface leading-snug">{evt.message}</p>
-                    <div className="text-outline font-code-md text-code-md mt-1">{evt.detail}</div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
-            <div className="p-3 bg-surface-container flex items-center justify-between text-outline font-label-sm text-label-sm border-t border-outline-variant/30">
-              <span>FAILOVER LATENCY BUDGET: 2,500ms</span>
-              <span className="text-primary font-code-md text-code-md">CIRCUIT MESH: NOMINAL</span>
-            </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        </>
+      )}
     </div>
+  );
+}
+
+export default function OpsAiCostPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-caption text-ops-text-muted">Loading AI economics...</div>}>
+      <OpsAiCostContent />
+    </Suspense>
   );
 }

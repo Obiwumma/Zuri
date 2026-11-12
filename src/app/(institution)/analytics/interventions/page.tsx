@@ -1,13 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
-import { KpiTile } from '@/components/ui/KpiTile';
-import { DataTable, Column } from '@/components/ui/DataTable';
-import { FilterBar } from '@/components/ui/FilterBar';
-import { DevStateLens } from '@/components/ui/DevStateLens';
+import React, { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import {
+  DataTable,
+  type Column,
+  Button,
+  Badge,
+  EmptyState,
+  Skeleton,
+  Alert,
+} from '@/components/ui';
+import {
+  TrendingUp,
+  Download,
+  SlidersHorizontal,
+  Activity,
+  FileSpreadsheet,
+  Database,
+  ArrowRight,
+} from 'lucide-react';
 
-interface CourseLedgerRow {
+export type AnalyticsState = 'default' | 'loading' | 'empty' | 'error';
+
+interface CourseInterventionRow {
   title: string;
   code: string;
   department: string;
@@ -16,533 +32,480 @@ interface CourseLedgerRow {
   rate: string;
   isHighRate: boolean;
   trend: string;
-  isTrendUp: boolean;
 }
 
-export default function InterventionAnalyticsPage() {
-  const [analyticsState, setAnalyticsState] = useState<'populated' | 'empty' | 'filtered-empty' | 'loading'>('populated');
-  const [activeRole, setActiveRole] = useState<string>('admin');
-  const [activeFilters, setActiveFilters] = useState<string[]>([
-    'Status: Actioned & Pending',
-    'Cohort: 2024 Matriculation',
-  ]);
+const mockCourseInterventions: CourseInterventionRow[] = [
+  {
+    title: 'Late Imperial Diplomacy (1870–1914)',
+    code: 'HIST-204',
+    department: 'Faculty of History',
+    interventions: 482,
+    accepted: 418,
+    rate: '86.7%',
+    isHighRate: true,
+    trend: '+6.2% on last week',
+  },
+  {
+    title: 'Cellular Signalling & Genomic Medicine',
+    code: 'BIO-410',
+    department: 'Dept. of Biochemistry',
+    interventions: 540,
+    accepted: 442,
+    rate: '81.8%',
+    isHighRate: true,
+    trend: '+3.5% on last week',
+  },
+  {
+    title: 'Formal Logic & Dialectic',
+    code: 'PHIL-101',
+    department: 'Faculty of Philosophy',
+    interventions: 398,
+    accepted: 322,
+    rate: '80.9%',
+    isHighRate: true,
+    trend: '+8.1% on last week',
+  },
+  {
+    title: 'Constitutional Jurisprudence',
+    code: 'LAW-105',
+    department: 'Faculty of Law',
+    interventions: 280,
+    accepted: 246,
+    rate: '87.9%',
+    isHighRate: true,
+    trend: '+4.2% on last week',
+  },
+  {
+    title: 'Linear Algebra & Matrix Decompositions',
+    code: 'MATH-210',
+    department: 'Mathematical Institute',
+    interventions: 610,
+    accepted: 458,
+    rate: '75.1%',
+    isHighRate: false,
+    trend: '+1.8% on last week',
+  },
+  {
+    title: 'Advanced Fluid Dynamics',
+    code: 'ENG-320',
+    department: 'Dept. of Engineering Science',
+    interventions: 315,
+    accepted: 230,
+    rate: '73.0%',
+    isHighRate: false,
+    trend: 'Steady',
+  },
+];
 
-  const removeFilter = (filterToRemove: string) => {
-    const updated = activeFilters.filter((f) => f !== filterToRemove);
-    setActiveFilters(updated);
-    if (updated.length === 0) {
-      setAnalyticsState('filtered-empty');
-    }
-  };
+const mockWeeklyInterventions = [
+  { week: 'Wk 1', label: 'Week 1', flagged: 140, resolved: 98, rate: '70.0%' },
+  { week: 'Wk 2', label: 'Week 2', flagged: 210, resolved: 162, rate: '77.1%' },
+  { week: 'Wk 3', label: 'Week 3', flagged: 320, resolved: 258, rate: '80.6%' },
+  { week: 'Wk 4', label: 'Week 4', flagged: 410, resolved: 335, rate: '81.7%' },
+  { week: 'Wk 5', label: 'Week 5', flagged: 480, resolved: 396, rate: '82.5%' },
+  { week: 'Wk 6', label: 'Week 6 (Midterm)', flagged: 560, resolved: 458, rate: '81.8%' },
+  { week: 'Wk 7', label: 'Week 7 (Current)', flagged: 490, resolved: 412, rate: '84.1%' },
+];
 
-  const resetFilters = () => {
-    setActiveFilters([
-      'Status: Actioned & Pending',
-      'Cohort: 2024 Matriculation',
-    ]);
-    setAnalyticsState('populated');
-  };
+function InterventionsContent() {
+  const searchParams = useSearchParams();
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
 
-  const ledgerData: CourseLedgerRow[] = [
-    {
-      title: 'Late Imperial Diplomacy',
-      code: 'HIST-204 • Michaelmas Option',
-      department: 'Faculty of History',
-      interventions: 482,
-      accepted: 418,
-      rate: '86.7%',
-      isHighRate: true,
-      trend: '+6.2% Wk/Wk',
-      isTrendUp: true,
-    },
-    {
-      title: 'Cellular Signalling & Genomic Medicine',
-      code: 'BIO-410 • Advanced Core',
-      department: 'Medical Sciences Division',
-      interventions: 540,
-      accepted: 442,
-      rate: '81.8%',
-      isHighRate: true,
-      trend: '+3.5% Wk/Wk',
-      isTrendUp: true,
-    },
-    {
-      title: 'Formal Logic & Dialectic',
-      code: 'PHIL-101 • Introductory Mods',
-      department: 'Faculty of Philosophy',
-      interventions: 398,
-      accepted: 322,
-      rate: '80.9%',
-      isHighRate: true,
-      trend: '+8.1% Wk/Wk',
-      isTrendUp: true,
-    },
-    {
-      title: 'Advanced Fluid Dynamics & Navier-Stokes',
-      code: 'ENG-320 • Part II Specialization',
-      department: 'Department of Engineering Science',
-      interventions: 315,
-      accepted: 230,
-      rate: '73.0%',
-      isHighRate: false,
-      trend: 'Steady',
-      isTrendUp: false,
-    },
-    {
-      title: 'Linear Algebra & Matrix Decompositions',
-      code: 'MATH-210 • Year 2 Foundation',
-      department: 'Mathematical Institute',
-      interventions: 610,
-      accepted: 458,
-      rate: '75.1%',
-      isHighRate: true,
-      trend: '+1.8% Wk/Wk',
-      isTrendUp: true,
-    },
-  ];
+  const [state, setState] = useState<AnalyticsState>('default');
+  const [dateRange, setDateRange] = useState('Michaelmas Term 2024–25 (Wks 1–7)');
+  const [chartViewMode, setChartViewMode] = useState<'chart' | 'table'>('chart');
 
-  const ledgerColumns: Column<CourseLedgerRow>[] = [
+  const maxWeeklyFlagged = Math.max(...mockWeeklyInterventions.map((d) => d.flagged));
+
+  const columns: Column<CourseInterventionRow>[] = [
     {
-      header: 'Course & Module',
+      header: 'Course & curriculum',
+      isTitle: true,
       accessor: (row) => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-primary hover:text-secondary transition-colors">{row.title}</span>
-          <span className="font-label-caps text-[11px] text-on-surface-variant">{row.code}</span>
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-caption px-2 py-0.5 rounded-sm bg-surface-container font-semibold text-primary">
+              {row.code}
+            </span>
+            <span className="font-semibold text-on-surface text-body-sm truncate">
+              {row.title}
+            </span>
+          </div>
+          <span className="text-caption text-on-surface-variant truncate mt-0.5">
+            {row.department}
+          </span>
         </div>
       ),
     },
     {
-      header: 'Department / Faculty',
-      accessor: (row) => <span className="text-on-surface-variant">{row.department}</span>,
-    },
-    {
-      header: 'Interventions',
-      className: 'text-right',
-      accessor: (row) => <span className="font-semibold text-primary">{row.interventions}</span>,
-    },
-    {
-      header: 'Accepted',
-      className: 'text-right',
-      accessor: (row) => <span className="text-on-surface">{row.accepted}</span>,
-    },
-    {
-      header: 'Acceptance Rate',
-      className: 'text-center',
+      header: 'Flags logged',
+      numeric: true,
       accessor: (row) => (
-        <span className={`inline-block px-2.5 py-0.5 rounded-full font-semibold text-[13px] ${
-          row.isHighRate
-            ? 'bg-primary-container text-on-primary-container'
-            : 'bg-surface-container text-on-surface'
-        }`}>
-          {row.rate}
+        <span className="tabular-nums text-on-surface text-body-sm">
+          {row.interventions.toLocaleString()}
         </span>
       ),
     },
     {
-      header: 'Trend',
+      header: 'Resolved by tutor',
+      numeric: true,
       accessor: (row) => (
-        <div className={`flex items-center gap-1 text-[13px] ${row.isTrendUp ? 'text-secondary font-semibold' : 'text-on-surface-variant'}`}>
-          <Icon className="text-[15px]">{row.isTrendUp ? 'arrow_outward' : 'trending_flat'}</Icon>
-          {row.trend}
-        </div>
+        <span className="tabular-nums text-on-surface text-body-sm">
+          {row.accepted.toLocaleString()}
+        </span>
       ),
     },
     {
-      header: 'Action',
-      className: 'text-right',
-      accessor: () => (
-        <button className="text-secondary hover:text-on-secondary-container font-semibold text-[13px] inline-flex items-center gap-1 transition-transform hover:translate-x-0.5" type="button">
-          <span>View Cohort Dossier</span>
-          <Icon className="text-[14px]">arrow_forward</Icon>
-        </button>
+      header: 'Resolution rate',
+      numeric: true,
+      isKeyField: true,
+      accessor: (row) => (
+        <Badge variant={row.isHighRate ? 'success' : 'neutral'}>
+          {row.rate}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Trajectory',
+      numeric: true,
+      isKeyField: true,
+      accessor: (row) => (
+        <span className="inline-flex items-center gap-1 text-caption font-medium text-primary bg-primary-container/20 px-2 py-0.5 rounded-full tabular-nums">
+          <TrendingUp className="w-3 h-3 stroke-[2]" aria-hidden="true" />
+          <span>{row.trend}</span>
+        </span>
       ),
     },
   ];
 
   return (
-    <>
-      <div className="max-w-max-width mx-auto px-margin-desktop py-space-xl">
-        <div className="flex flex-col w-full gap-space-xl">
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
-            <div className="flex flex-col gap-1 max-w-2xl">
-              <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Intelligence & Analytics • Pedagogical Outcomes</span>
-              <h1 className="font-headline-md text-headline-md text-primary font-serif font-bold tracking-tight">Intervention analytics</h1>
-              <p className="font-body-md text-body-md text-on-surface-variant mt-1">
-                Understand which proactive learning interventions are being surfaced, accepted, and acted upon across Oxford faculties and constituent colleges.
-              </p>
-            </div>
-            <div className="flex items-center gap-space-md self-start md:self-auto">
-              <a className="font-ui-functional text-ui-functional text-secondary hover:text-on-secondary-container transition-colors flex items-center gap-1 underline underline-offset-4 decoration-outline-variant" href="#">
-                <Icon className="text-[16px]">tune</Icon>
-                Intervention Protocol Settings
-              </a>
-              <button className="px-space-md py-2 rounded-lg bg-surface-container-lowest text-primary hover:bg-surface-container font-ui-functional text-ui-functional shadow-sm flex items-center gap-space-xs transition-colors" type="button">
-                <Icon className="text-[18px]">download_for_offline</Icon>
-                <span>Export Senate Analytics Dossier</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Filter & Control Bar */}
-          <div className="w-full bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-space-sm">
-              <div className="flex flex-col">
-                <label className="font-label-caps text-label-caps uppercase text-on-surface-variant mb-1">Academic Term</label>
-                <div className="relative">
-                  <select className="w-full bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-2 px-space-sm pr-8 rounded-lg appearance-none cursor-pointer outline-none hover:bg-surface-container">
-                    <option>Michaelmas Term (Weeks 1–7)</option>
-                    <option>Hilary Term (Archived 2024)</option>
-                    <option>Trinity Term (Archived 2024)</option>
-                    <option>All Academic Year 2024–25</option>
-                  </select>
-                  <Icon className="absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</Icon>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <label className="font-label-caps text-label-caps uppercase text-on-surface-variant mb-1">Course Scope</label>
-                <div className="relative">
-                  <select className="w-full bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-2 px-space-sm pr-8 rounded-lg appearance-none cursor-pointer outline-none hover:bg-surface-container">
-                    <option>All Courses (412 active)</option>
-                    <option>Undergraduate Tripos / Mods</option>
-                    <option>Postgraduate Research Seminars</option>
-                    <option>Clinical & Laboratory Courses</option>
-                  </select>
-                  <Icon className="absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</Icon>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <label className="font-label-caps text-label-caps uppercase text-on-surface-variant mb-1">Faculty & Division</label>
-                <div className="relative">
-                  <select className="w-full bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-2 px-space-sm pr-8 rounded-lg appearance-none cursor-pointer outline-none hover:bg-surface-container">
-                    <option>All Divisions & Faculties</option>
-                    <option>Humanities Division</option>
-                    <option>Mathematical, Physical & Life Sciences</option>
-                    <option>Medical Sciences Division</option>
-                    <option>Social Sciences Division</option>
-                  </select>
-                  <Icon className="absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</Icon>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <label className="font-label-caps text-label-caps uppercase text-on-surface-variant mb-1">Intervention Type</label>
-                <div className="relative">
-                  <select className="w-full bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-2 px-space-sm pr-8 rounded-lg appearance-none cursor-pointer outline-none hover:bg-surface-container">
-                    <option>All Types (4 Categories)</option>
-                    <option>Pre-Class Reading Diagnostic</option>
-                    <option>Post-Lecture Reinforcement</option>
-                    <option>Exam & Collections Prep</option>
-                    <option>Assignment Reminder & Scaffold</option>
-                  </select>
-                  <Icon className="absolute right-2 top-2.5 text-on-surface-variant pointer-events-none text-[18px]">keyboard_arrow_down</Icon>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <label className="font-label-caps text-label-caps uppercase text-on-surface-variant mb-1">Registry Search</label>
-                <div className="relative">
-                  <input
-                    className="w-full bg-surface-container-low text-on-surface font-ui-functional text-ui-functional py-2 pl-9 pr-3 rounded-lg outline-none hover:bg-surface-container focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary"
-                    defaultValue="HIST-204"
-                    placeholder="Search course code..."
-                    type="text"
-                  />
-                  <Icon className="absolute left-2.5 top-2.5 text-on-surface-variant text-[18px]">search</Icon>
-                </div>
-              </div>
-            </div>
-
-            {/* Active Filters & Reset */}
-            <div className="flex flex-wrap items-center justify-between gap-space-sm pt-space-xs">
-              <div className="flex flex-wrap items-center gap-space-xs">
-                <span className="font-label-caps text-label-caps uppercase text-on-surface-variant mr-1">Active Criteria:</span>
-                {activeFilters.map((filter) => (
-                  <span key={filter} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container font-ui-functional text-[12px] text-on-surface">
-                    {filter}
-                    <button
-                      className="text-on-surface-variant hover:text-error cursor-pointer flex items-center justify-center">
-                      <Icon size={14}>close</Icon>
-                    </button>
-                  </span>
-                ))}
-              </div>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
+      {/* Dev State Simulation Harness Bar (only when ?states=1) */}
+      {showHarness && (
+        <aside aria-label="Development test harness" className="w-full">
+          <div className="bg-surface-container-high border border-outline-variant rounded-default p-2 flex flex-wrap items-center justify-between gap-2 text-caption">
+            <span className="text-on-surface-variant font-medium flex items-center gap-1.5">
+              <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
+              Intervention states:
+            </span>
+            <div className="flex items-center gap-1 flex-wrap">
               <button
-                className="font-label-caps text-label-caps uppercase text-secondary hover:underline"
-                onClick={resetFilters}
                 type="button"
+                onClick={() => setState('default')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'default'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
               >
-                Clear all filters
+                Default
+              </button>
+              <button
+                type="button"
+                onClick={() => setState('loading')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'loading'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Loading
+              </button>
+              <button
+                type="button"
+                onClick={() => setState('empty')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'empty'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Empty
+              </button>
+              <button
+                type="button"
+                onClick={() => setState('error')}
+                className={`px-2.5 py-1 rounded-sm text-caption transition-colors cursor-pointer ${
+                  state === 'error'
+                    ? 'bg-primary text-on-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                Error
               </button>
             </div>
           </div>
+        </aside>
+      )}
 
-          {/* STATE CONTAINER 1: POPULATED VIEW */}
-          {analyticsState === 'populated' && (
-            <div className="flex flex-col gap-space-xl transition-opacity duration-300" id="view-populated">
-              {/* Top KPI Row (4 Editorial Cards using KpiTile) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
-                <KpiTile
-                  icon="trending_up"
-                  label="Total Interventions"
-                  subtext="Across 38 constituent colleges"
-                  trend="+12.4% vs Michaelmas 2023"
-                  trendDirection="up"
-                  value="3,842"
-                />
-                <KpiTile
-                  icon="task_alt"
-                  label="Student Acceptance"
-                  subtext="+5.1% since Week 3 diagnostic baseline"
-                  trend="3,012 acted on within 48h"
-                  trendDirection="up"
-                  value="78.4%"
-                />
-                <KpiTile
-                  icon="flag"
-                  label="Interventions This Week"
-                  subtext="142 active responses in last 48h"
-                  trend="32 flagged for tutorial triage"
-                  trendDirection="neutral"
-                  value="412"
-                />
-                <KpiTile
-                  icon="auto_stories"
-                  label="Most Common Modality"
-                  subtext="84% completion • Followed by Exam Prep"
-                  trend="44.2% of all signals (1,698)"
-                  trendDirection="up"
-                  value="Pre-Class Review"
-                />
-              </div>
-
-              {/* Main Visualizations: 2-Column Asymmetric Grid (7 cols / 5 cols) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-md">
-                {/* Chart 1: Intervention Volume & Student Uptake Over Time (7 Cols) */}
-                <div className="lg:col-span-7 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-sm mb-space-md">
-                    <div className="flex flex-col">
-                      <h2 className="font-headline-sm text-headline-sm font-serif text-primary">Intervention Volume & Uptake</h2>
-                      <p className="font-ui-functional text-ui-functional text-on-surface-variant">Weekly volume of proactive learning signals surfaced vs. student engagement</p>
-                    </div>
-                    <div className="flex items-center gap-space-md">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-primary"></span>
-                        <span className="font-ui-functional text-[12px] text-on-surface-variant">Surfaced Signals</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-secondary"></span>
-                        <span className="font-ui-functional text-[12px] text-on-surface-variant">Accepted & Completed</span>
-                      </div>
-                    </div>
-                  </div>
-                  {/* SVG Line/Area Restrained Chart */}
-                  <div className="relative w-full h-64 mt-2">
-                    <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 700 240">
-                      <defs>
-                        <linearGradient id="gradient-surfaced" x1="0" x2="0" y1="0" y2="1">
-                          <stop offset="0%" stopColor="#131900" stopOpacity="0.12"></stop>
-                          <stop offset="100%" stopColor="#131900" stopOpacity="0.0"></stop>
-                        </linearGradient>
-                        <linearGradient id="gradient-accepted" x1="0" x2="0" y1="0" y2="1">
-                          <stop offset="0%" stopColor="#855300" stopOpacity="0.18"></stop>
-                          <stop offset="100%" stopColor="#855300" stopOpacity="0.0"></stop>
-                        </linearGradient>
-                      </defs>
-                      <line stroke="#f0eee9" strokeDasharray="4 4" strokeWidth="1" x1="40" x2="680" y1="20" y2="20"></line>
-                      <line stroke="#f0eee9" strokeDasharray="4 4" strokeWidth="1" x1="40" x2="680" y1="75" y2="75"></line>
-                      <line stroke="#f0eee9" strokeDasharray="4 4" strokeWidth="1" x1="40" x2="680" y1="130" y2="130"></line>
-                      <line stroke="#e4e2dd" strokeWidth="1" x1="40" x2="680" y1="185" y2="185"></line>
-                      <text className="fill-outline text-[11px] font-sans" textAnchor="end" x="30" y="24">700</text>
-                      <text className="fill-outline text-[11px] font-sans" textAnchor="end" x="30" y="79">500</text>
-                      <text className="fill-outline text-[11px] font-sans" textAnchor="end" x="30" y="134">300</text>
-                      <text className="fill-outline text-[11px] font-sans" textAnchor="end" x="30" y="189">0</text>
-                      <polygon fill="url(#gradient-surfaced)" points="70,165 170,140 270,110 370,85 470,62 570,38 670,72 670,185 70,185"></polygon>
-                      <polygon fill="url(#gradient-accepted)" points="70,172 170,152 270,128 370,105 470,88 570,64 670,95 670,185 70,185"></polygon>
-                      <polyline fill="none" points="70,165 170,140 270,110 370,85 470,62 570,38 670,72" stroke="#131900" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></polyline>
-                      <polyline fill="none" points="70,172 170,152 270,128 370,105 470,88 570,64 670,95" stroke="#855300" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></polyline>
-                      <circle cx="570" cy="38" fill="#131900" r="4.5"></circle>
-                      <circle cx="570" cy="64" fill="#855300" r="4.5"></circle>
-                      <rect fill="#131900" height="22" rx="4" width="100" x="520" y="8"></rect>
-                      <text className="fill-on-primary text-[10px] font-sans font-bold" textAnchor="middle" x="570" y="23">Wk 6: 620 Surfaced</text>
-                      <text className="fill-on-surface-variant text-[12px] font-sans" textAnchor="middle" x="70" y="212">Wk 1</text>
-                      <text className="fill-on-surface-variant text-[12px] font-sans" textAnchor="middle" x="170" y="212">Wk 2</text>
-                      <text className="fill-on-surface-variant text-[12px] font-sans" textAnchor="middle" x="270" y="212">Wk 3</text>
-                      <text className="fill-on-surface-variant text-[12px] font-sans" textAnchor="middle" x="370" y="212">Wk 4</text>
-                      <text className="fill-on-surface-variant text-[12px] font-sans" textAnchor="middle" x="470" y="212">Wk 5</text>
-                      <text className="fill-primary font-bold text-[12px] font-sans" textAnchor="middle" x="570" y="212">Wk 6 (Midterm)</text>
-                      <text className="fill-on-surface-variant text-[12px] font-sans" textAnchor="middle" x="670" y="212">Wk 7 (Now)</text>
-                    </svg>
-                  </div>
-                  <div className="mt-space-md p-space-sm bg-surface-container-low rounded-lg flex items-center justify-between">
-                    <div className="flex items-center gap-space-xs text-on-surface-variant font-ui-functional text-[13px]">
-                      <Icon className="text-[16px] text-secondary">info</Icon>
-                      <span>Midterm diagnostic period in Week 6 represented the highest surge in support requests.</span>
-                    </div>
-                    <span className="font-label-caps text-label-caps text-secondary font-semibold">91.4% Tutorial Follow-through</span>
-                  </div>
-                </div>
-
-                {/* Chart 2: Acceptance & Action Rate by Type (5 Cols) */}
-                <div className="lg:col-span-5 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="flex flex-col mb-space-md">
-                      <h2 className="font-headline-sm text-headline-sm font-serif text-primary">Acceptance by Category</h2>
-                      <p className="font-ui-functional text-ui-functional text-on-surface-variant">Proportion of students taking action within 72 hours</p>
-                    </div>
-                    <div className="flex flex-col gap-space-md">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between text-ui-functional font-ui-functional">
-                          <span className="font-medium text-primary">Pre-Class Review</span>
-                          <span className="font-bold text-primary">84.2% <span className="font-normal text-on-surface-variant text-[12px]">(1,698 signals)</span></span>
-                        </div>
-                        <div className="w-full bg-surface-container rounded-full h-2.5 overflow-hidden">
-                          <div className="bg-primary h-2.5 rounded-full" style={{ width: '84.2%' }}></div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between text-ui-functional font-ui-functional">
-                          <span className="font-medium text-primary">Post-Lecture Reinforcement</span>
-                          <span className="font-bold text-primary">79.1% <span className="font-normal text-on-surface-variant text-[12px]">(912 signals)</span></span>
-                        </div>
-                        <div className="w-full bg-surface-container rounded-full h-2.5 overflow-hidden">
-                          <div className="bg-secondary h-2.5 rounded-full" style={{ width: '79.1%' }}></div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between text-ui-functional font-ui-functional">
-                          <span className="font-medium text-primary">Exam Preparation</span>
-                          <span className="font-bold text-primary">74.8% <span className="font-normal text-on-surface-variant text-[12px]">(780 signals)</span></span>
-                        </div>
-                        <div className="w-full bg-surface-container rounded-full h-2.5 overflow-hidden">
-                          <div className="bg-surface-tint h-2.5 rounded-full" style={{ width: '74.8%' }}></div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between text-ui-functional font-ui-functional">
-                          <span className="font-medium text-primary">Assignment Scaffold & Reminder</span>
-                          <span className="font-bold text-primary">68.3% <span className="font-normal text-on-surface-variant text-[12px]">(452 signals)</span></span>
-                        </div>
-                        <div className="w-full bg-surface-container rounded-full h-2.5 overflow-hidden">
-                          <div className="bg-secondary-container h-2.5 rounded-full" style={{ width: '68.3%' }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-space-lg p-space-md bg-secondary-fixed/40 rounded-lg flex items-start gap-space-sm">
-                    <Icon className="text-secondary text-[22px] mt-0.5">school</Icon>
-                    <div className="flex flex-col">
-                      <span className="font-label-caps text-label-caps uppercase text-secondary font-bold">Pedagogical Correlation Note</span>
-                      <p className="font-body-md text-[13px] text-on-surface leading-snug mt-0.5">
-                        Students engaging with pre-class review recommendations demonstrate a <strong>+14% higher tutorial participation score</strong> as recorded by college tutors.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Course & Department Telemetry Ledger Section (using DataTable) */}
-              <DataTable
-                categoryLabel="Academic Distribution"
-                columns={ledgerColumns}
-                data={ledgerData}
-                keyExtractor={(row) => row.code}
-                subtitle="Comprehensive breakdown of intervention cadence and student acceptance across faculties. Click any row to view granular cohort telemetry and tutorial notes."
-                title="Course & Department Telemetry Ledger"
-              />
-            </div>
-          )}
-
-          {/* STATE CONTAINER 2: EMPTY STATE */}
-          {analyticsState === 'empty' && (
-            <div className="flex flex-col items-center justify-center py-20 px-space-md bg-surface-container-lowest rounded-xl shadow-sm text-center" id="view-empty">
-              <div className="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-space-md text-secondary">
-                <Icon className="text-[36px]">history_edu</Icon>
-              </div>
-              <span className="font-label-caps text-label-caps uppercase text-secondary">Awaiting Michaelmas Term Onset</span>
-              <h2 className="font-headline-md text-headline-md font-serif text-primary mt-1 max-w-lg">No Interventions Recorded for Selected Term</h2>
-              <p className="font-body-md text-body-md text-on-surface-variant mt-2 max-w-md">
-                Once Michaelmas Term commences and syllabus telemetry is connected with Oxford tutorial registries, proactive intervention signals will appear here.
-              </p>
-              <div className="mt-space-lg flex items-center gap-space-sm">
-                <button className="px-space-md py-2 rounded-lg bg-primary text-on-primary font-ui-functional text-ui-functional hover:bg-primary-container transition-colors" type="button">
-                  Configure Term Signal Thresholds
-                </button>
-                <button className="px-space-md py-2 rounded-lg bg-surface-container text-on-surface font-ui-functional text-ui-functional hover:bg-surface-container-high transition-colors" onClick={() => setAnalyticsState('populated')} type="button">
-                  View Previous Term Archives
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STATE CONTAINER 3: FILTERED-EMPTY STATE */}
-          {analyticsState === 'filtered-empty' && (
-            <div className="flex flex-col items-center justify-center py-20 px-space-md bg-surface-container-lowest rounded-xl shadow-sm text-center" id="view-filtered-empty">
-              <div className="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-space-md text-outline">
-                <Icon className="text-[36px]">filter_alt_off</Icon>
-              </div>
-              <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">Telemetry Query: 0 Records</span>
-              <h2 className="font-headline-md text-headline-md font-serif text-primary mt-1 max-w-lg">No interventions match your active filter criteria</h2>
-              <p className="font-body-md text-body-md text-on-surface-variant mt-2 max-w-md">
-                There are no learning interventions recorded under the specified faculty, course code, or type within Michaelmas Term Weeks 1–7.
-              </p>
-              <div className="mt-space-lg">
-                <button className="px-space-md py-2 rounded-lg bg-primary text-on-primary font-ui-functional text-ui-functional hover:bg-primary-container transition-colors inline-flex items-center gap-1.5" onClick={resetFilters} type="button">
-                  <Icon className="text-[18px]">restart_alt</Icon>
-                  Reset all filters to defaults
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STATE CONTAINER 4: TELEMETRY LOADING STATE */}
-          {analyticsState === 'loading' && (
-            <div className="flex flex-col gap-space-xl animate-pulse" id="view-loading">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm h-36 flex flex-col justify-between">
-                    <div className="h-3 bg-surface-container rounded w-1/3"></div>
-                    <div className="h-10 bg-surface-container rounded w-1/2 my-2"></div>
-                    <div className="h-3 bg-surface-container rounded w-3/4"></div>
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-md">
-                <div className="lg:col-span-7 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm h-80 flex flex-col justify-between">
-                  <div className="h-4 bg-surface-container rounded w-1/4"></div>
-                  <div className="h-48 bg-surface-container-low rounded w-full"></div>
-                  <div className="h-3 bg-surface-container rounded w-1/2"></div>
-                </div>
-                <div className="lg:col-span-5 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm h-80 flex flex-col justify-between">
-                  <div className="h-4 bg-surface-container rounded w-1/3"></div>
-                  <div className="flex flex-col gap-4 my-2">
-                    <div className="h-6 bg-surface-container-low rounded w-full"></div>
-                    <div className="h-6 bg-surface-container-low rounded w-full"></div>
-                    <div className="h-6 bg-surface-container-low rounded w-full"></div>
-                  </div>
-                  <div className="h-12 bg-surface-container-low rounded w-full"></div>
-                </div>
-              </div>
-              <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col gap-4">
-                <div className="h-5 bg-surface-container rounded w-1/4"></div>
-                <div className="h-10 bg-surface-container-low rounded w-full"></div>
-                <div className="h-10 bg-surface-container-low rounded w-full"></div>
-                <div className="h-10 bg-surface-container-low rounded w-full"></div>
-                <div className="h-10 bg-surface-container-low rounded w-full"></div>
-              </div>
-            </div>
-          )}
+      {/* Page Header (DESIGN.md section 11: Analytics template) */}
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-outline-variant/40">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-on-surface tracking-tight">
+            Intervention analytics
+          </h1>
+          <p className="text-body-sm text-on-surface-variant mt-1 max-w-2xl">
+            Diagnostic support flags, tutor recommendations, and student concept recovery across academic departments.
+          </p>
         </div>
-      </div>
-      <DevStateLens
-        activeId={analyticsState}
-        label="Interventions State Lens"
-        onSelect={(id) => setAnalyticsState(id as 'populated' | 'empty' | 'filtered-empty' | 'loading')}
-        options={[
-          { id: 'populated', label: '1. Populated (Michaelmas Wk 7)' },
-          { id: 'empty', label: '2. Empty Term' },
-          { id: 'filtered-empty', label: '3. Filtered-Zero' },
-          { id: 'loading', label: '4. Telemetry Loading' },
-        ]}
-      />
-    </>
+
+        {/* Date-range filter & action on the right */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial min-w-[220px]">
+            <select
+              aria-label="Academic date-range filter"
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="w-full h-10 px-3 pr-8 bg-surface-container-lowest border border-outline text-on-surface text-body-sm rounded-default outline-none focus-visible:focus-ring cursor-pointer hover:border-on-surface-variant transition-colors"
+            >
+              <option value="Michaelmas Term 2024–25 (Wks 1–7)">Michaelmas Term 2024–25</option>
+              <option value="Trinity Term 2023–24">Trinity Term 2023–24</option>
+              <option value="Hilary Term 2023–24">Hilary Term 2023–24</option>
+              <option value="Full Academic Year 2023–24">Full Academic Year 2023–24</option>
+            </select>
+          </div>
+          <Button variant="secondary" className="flex-1 sm:flex-initial">
+            <Download className="w-4 h-4" aria-hidden="true" />
+            <span>Export report</span>
+          </Button>
+        </div>
+      </header>
+
+      {/* State: Error */}
+      {state === 'error' && (
+        <Alert
+          variant="error"
+          title="Unable to load intervention analytics"
+          description="We encountered a problem loading your academic intervention trends. Check your connection and try again."
+          action={
+            <Button variant="secondary" size="sm" onClick={() => setState('default')}>
+              Try again
+            </Button>
+          }
+        />
+      )}
+
+      {/* State: Loading (Skeleton) */}
+      {state === 'loading' && (
+        <div
+          className="space-y-6 sm:space-y-8 animate-pulse"
+          aria-busy="true"
+          aria-label="Loading intervention analytics"
+        >
+          {/* Skeleton Insight Line */}
+          <Skeleton className="h-12 w-full rounded-default" />
+
+          {/* Skeleton Headline Chart */}
+          <div className="bg-surface-container-lowest p-5 sm:p-6 rounded-md border border-outline-variant space-y-4">
+            <Skeleton className="h-6 w-56" />
+            <Skeleton className="h-4 w-80" />
+            <Skeleton className="h-64 w-full rounded-default" />
+          </div>
+
+          {/* Skeleton Breakdown Table */}
+          <div className="bg-surface-container-lowest p-5 sm:p-6 rounded-md border border-outline-variant space-y-4">
+            <Skeleton className="h-6 w-64" />
+            <div className="space-y-3 pt-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-default" />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* State: Empty */}
+      {state === 'empty' && (
+        <div className="bg-surface-container-lowest rounded-md border border-outline-variant p-8 md:p-12">
+          <EmptyState
+            icon={Database}
+            title="No interventions recorded for this period"
+            description="No student diagnostic flags or tutorial recovery sessions exist for the selected date range."
+            action={
+              <Button variant="primary" onClick={() => setState('default')}>
+                Reset to current term
+              </Button>
+            }
+          />
+        </div>
+      )}
+
+      {/* State: Default (Populated) */}
+      {state === 'default' && (
+        <>
+          {/* Component: Plain-Language Insight Line (DESIGN.md section 11) */}
+          <div className="bg-surface-container-low border border-outline-variant/40 rounded-default px-4 py-3 flex items-center gap-3">
+            <TrendingUp className="w-4.5 h-4.5 text-primary shrink-0" aria-hidden="true" />
+            <p className="text-body-sm text-on-surface">
+              <span className="font-semibold text-primary">Tutorial interventions resolved 84.1% of academic flags this week.</span>{' '}
+              Formative recovery peaked during Week 6 midterm tutorials with 458 student sessions completed.
+            </p>
+          </div>
+
+          {/* Component: One Headline Chart (DESIGN.md section 11: text alternatives, non-color reliance) */}
+          <section
+            aria-labelledby="headline-chart-title"
+            className="bg-surface-container-lowest border border-outline-variant rounded-md p-5 sm:p-6 flex flex-col"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-outline-variant/30">
+              <div>
+                <h2 id="headline-chart-title" className="text-h3 font-serif font-semibold text-on-surface">
+                  Weekly intervention volume and resolution
+                </h2>
+                <p className="text-caption text-on-surface-variant mt-0.5">
+                  Comparison of flagged concept diagnostics and successfully completed tutorial interventions.
+                </p>
+              </div>
+
+              {/* View Toggle: Chart vs Accessible Data Table */}
+              <div className="inline-flex rounded-default bg-surface-container p-0.5 self-start sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => setChartViewMode('chart')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-caption transition-colors cursor-pointer ${
+                    chartViewMode === 'chart'
+                      ? 'bg-surface-container-lowest text-on-surface font-semibold shadow-xs'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                  aria-pressed={chartViewMode === 'chart'}
+                >
+                  <Activity className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Cadence chart</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartViewMode('table')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-caption transition-colors cursor-pointer ${
+                    chartViewMode === 'table'
+                      ? 'bg-surface-container-lowest text-on-surface font-semibold shadow-xs'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                  aria-pressed={chartViewMode === 'table'}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Data table</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Screen Reader Text Alternative */}
+            <p className="sr-only">
+              Intervention summary: Week 1 recorded 140 flags with 98 resolved (70%). Flags increased through term to 560 in Week 6 with 458 resolved (81.8%), and current Week 7 has 490 flags with 412 resolved (84.1%).
+            </p>
+
+            {/* Visual View: Accessible Chart */}
+            {chartViewMode === 'chart' ? (
+              <div className="pt-6">
+                <div className="grid grid-cols-7 gap-2 sm:gap-4 items-end h-56 pt-4 pb-2 border-b border-outline-variant">
+                  {mockWeeklyInterventions.map((point) => {
+                    const heightPct = Math.round((point.flagged / maxWeeklyFlagged) * 100);
+                    const isCurrent = point.week.includes('Current') || point.week === 'Wk 7';
+
+                    return (
+                      <div
+                        key={point.week}
+                        className="flex flex-col items-center justify-end h-full gap-2 group relative"
+                      >
+                        {/* Numeric Value Label above bar */}
+                        <span className="text-[11px] sm:text-caption tabular-nums text-on-surface-variant font-medium">
+                          {point.resolved} / {point.flagged}
+                        </span>
+
+                        {/* Bar with distinct visual layers for non-color reliance */}
+                        <div
+                          className="w-full max-w-[48px] bg-surface-container rounded-t-default relative flex flex-col justify-end overflow-hidden"
+                          style={{ height: `${heightPct}%` }}
+                        >
+                          <div
+                            className={`w-full h-full rounded-t-default transition-all ${
+                              isCurrent
+                                ? 'bg-primary border-t-2 border-primary-container'
+                                : 'bg-primary/80 group-hover:bg-primary'
+                            }`}
+                          />
+                        </div>
+
+                        {/* Week Label */}
+                        <span
+                          className={`text-[11px] sm:text-caption font-medium truncate ${
+                            isCurrent ? 'text-primary font-semibold' : 'text-on-surface-variant'
+                          }`}
+                        >
+                          {point.week}
+                        </span>
+
+                        {/* Hover Details Callout */}
+                        <div className="absolute bottom-full mb-2 hidden group-hover:flex group-focus-within:flex flex-col z-20 bg-surface-container-high text-on-surface p-2.5 rounded-default border border-outline-variant shadow-sm text-caption whitespace-nowrap pointer-events-none">
+                          <span className="font-semibold text-on-surface">{point.label}</span>
+                          <span className="text-on-surface-variant">Flagged diagnostics: {point.flagged}</span>
+                          <span className="text-on-surface-variant">Tutor resolved: {point.resolved}</span>
+                          <span className="font-medium text-primary">Resolution rate: {point.rate}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Visible Chart Summary sentence below chart (Text alternative requirement) */}
+                <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-caption text-on-surface-variant">
+                  <span>
+                    Term resolution rate climbed from 70.0% in Week 1 to 84.1% in current Week 7 across collegiate faculties.
+                  </span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-xs bg-primary" aria-hidden="true" />
+                      <span>Interventions resolved</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Accessible Alternative Data Table View */
+              <div className="pt-4 overflow-x-auto">
+                <table className="w-full text-left text-body-sm border-collapse" aria-label="Weekly intervention data">
+                  <thead>
+                    <tr className="border-b border-outline-variant text-caption text-on-surface-variant">
+                      <th scope="col" className="py-2.5 pr-4 font-medium">Academic week</th>
+                      <th scope="col" className="py-2.5 px-4 font-medium text-right">Flags recorded</th>
+                      <th scope="col" className="py-2.5 px-4 font-medium text-right">Tutor resolved</th>
+                      <th scope="col" className="py-2.5 pl-4 font-medium text-right">Resolution rate</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/30">
+                    {mockWeeklyInterventions.map((point) => (
+                      <tr key={point.week} className="hover:bg-surface-container/50">
+                        <td className="py-2.5 pr-4 font-medium text-on-surface">{point.label}</td>
+                        <td className="py-2.5 px-4 text-right tabular-nums text-on-surface">{point.flagged.toLocaleString()}</td>
+                        <td className="py-2.5 px-4 text-right tabular-nums text-on-surface">{point.resolved.toLocaleString()}</td>
+                        <td className="py-2.5 pl-4 text-right font-semibold tabular-nums text-primary">{point.rate}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          {/* Component: Supporting Breakdown Table (DESIGN.md section 11) */}
+          <section className="flex flex-col">
+            <DataTable
+              title="Departmental intervention breakdown"
+              subtitle="Course intervention frequency, tutor action rate, and weekly trajectory."
+              columns={columns}
+              data={mockCourseInterventions}
+              keyExtractor={(row) => row.code}
+            />
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function InterventionAnalyticsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 max-w-7xl mx-auto min-h-dvh" />}>
+      <InterventionsContent />
+    </Suspense>
   );
 }

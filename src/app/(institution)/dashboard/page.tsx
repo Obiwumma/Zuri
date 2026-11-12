@@ -128,7 +128,7 @@ const mockActivities: ActivityItem[] = [
 
 function InstitutionDashboardContent() {
   const searchParams = useSearchParams();
-  const showHarness = searchParams.get('states') === '1';
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
 
   const [state, setState] = useState<DashboardState>('default');
   const [selectedTerm, setSelectedTerm] = useState('Michaelmas Term 2024–25');

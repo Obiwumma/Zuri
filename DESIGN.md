@@ -1,6 +1,6 @@
 # Zuri Design Guide (v2)
 
-> **For AI coding agents (Antigravity, etc.):** This file is the single source of truth for UI in this repo.
+> **For AI coding agents ():** This file is the single source of truth for UI in this repo.
 > Read it fully before creating or editing ANY page or component. If a rule here conflicts with what you
 > see in existing code, this file wins and the existing code should be migrated. Never invent new colors,
 > font sizes, radii, or icon sources. If something is missing from this guide, ask instead of improvising.
@@ -81,7 +81,7 @@ New semantic status tokens (add to `@theme`):
 
 Applied with `data-theme="ops"` on the ops layout root. Light variant exists but dark is default.
 
-| Token | Dark | Light | Use |
+| Token | Dark | Light | Use |s
 |---|---|---|---|
 | `--ops-canvas` | `#0b0d10` | `#f3f3f0` | Page background |
 | `--ops-panel` | `#12151a` | `#ffffff` | Panels, cards |

@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
 import { Wordmark } from '@/components/brand/Wordmark';
+import { setOpsTheme, useOpsTheme } from '@/lib/opsTheme';
 import {
   Activity,
   Coins,
@@ -23,6 +24,7 @@ import {
   ChevronUp,
   Menu,
   X,
+  Monitor,
 } from 'lucide-react';
 
 export interface OpsUser {
@@ -38,10 +40,15 @@ export function OpsLayoutClient({
   user: OpsUser;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const theme = useOpsTheme();
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setOpsTheme(nextTheme);
+  };
 
   // Standalone auth and recovery pages render without ops shell
   if (
@@ -83,7 +90,7 @@ export function OpsLayoutClient({
   ];
 
   return (
-    <div data-theme="ops" className="dark bg-ops-canvas text-ops-text antialiased selection:bg-ops-accent selection:text-ops-canvas font-ui-functional text-sm min-h-dvh flex flex-col">
+    <div className="bg-ops-canvas text-ops-text antialiased selection:bg-ops-accent selection:text-ops-canvas font-ui-functional text-sm min-h-dvh flex flex-col">
       {/* Off-canvas mobile backdrop */}
       {isMobileMenuOpen && (
         <div
@@ -184,6 +191,17 @@ export function OpsLayoutClient({
                   )}
                   <span className="font-mono text-[10px] text-primary uppercase mt-1">{user.role}</span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex items-center gap-2 px-2.5 py-2 rounded text-xs text-on-surface hover:bg-surface-container-high transition-colors w-full text-left cursor-pointer"
+                  role="menuitem"
+                  aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+                >
+                  <Icon icon={Monitor} size={16} />
+                  <span>{theme === 'dark' ? 'Light theme' : 'Dark theme'}</span>
+                </button>
 
                 <button
                   type="button"

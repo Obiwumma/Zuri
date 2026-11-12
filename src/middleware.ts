@@ -21,6 +21,7 @@ const INSTITUTIONAL_APP_PATHS = [
   '/departments',
   '/enrollment',
   '/lecturers',
+  '/staff',
   '/library',
   '/materials',
   '/activity',
@@ -166,7 +167,9 @@ export async function middleware(request: NextRequest) {
 
   const isOpsLogin = pathname === '/ops/login';
   const isOpsPublicRecovery =
-    pathname === '/ops/forgot-password' || pathname === '/ops/reset-password';
+    pathname === '/ops/forgot-password' ||
+    pathname === '/ops/reset-password' ||
+    pathname === '/ops/change-password';
   const isOpsRoute = pathname.startsWith('/ops') && !isOpsLogin && !isOpsPublicRecovery;
 
   const isInstitutionLogin = pathname === '/institution/login' || pathname === '/login';
@@ -195,9 +198,7 @@ export async function middleware(request: NextRequest) {
       // Students hitting either shell are rejected
       if (userRole === BACKEND_ROLES.STUDENT) {
         return clearAuthCookies(
-          new NextResponse('Access Denied: Student accounts are not permitted in administrative consoles.', {
-            status: 403,
-          })
+          NextResponse.rewrite(new URL('/access-denied', request.url), { status: 403 })
         );
       }
       // Redirect already-authenticated users to their correct shell
@@ -249,9 +250,7 @@ export async function middleware(request: NextRequest) {
       // Students hitting either shell are rejected
       if (userRole === BACKEND_ROLES.STUDENT) {
         return clearAuthCookies(
-          new NextResponse('Access Denied: Student accounts are not permitted in administrative consoles.', {
-            status: 403,
-          })
+          NextResponse.rewrite(new URL('/access-denied', request.url), { status: 403 })
         );
       }
       // Redirect already-authenticated users to their correct shell
@@ -304,9 +303,7 @@ export async function middleware(request: NextRequest) {
     }
     if (userRole === BACKEND_ROLES.STUDENT) {
       return clearAuthCookies(
-        new NextResponse('Access Denied: Student accounts are not permitted in administrative consoles.', {
-          status: 403,
-        })
+        NextResponse.rewrite(new URL('/access-denied', request.url), { status: 403 })
       );
     }
     if (canAccessOps(userRole)) {

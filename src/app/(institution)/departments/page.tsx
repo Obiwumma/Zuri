@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { StatePreview } from '@/components/ui/StatePreview';
 
 interface DepartmentCard {
   code: string;
@@ -121,6 +122,12 @@ export default function DepartmentsPage() {
   });
 
   return (
+    <StatePreview
+      loadingLabel="Loading departments"
+      emptyTitle="No departments found"
+      emptyDescription="Try a different search or division filter to find departments."
+      errorDescription="Departments could not be loaded. Check your connection and try again."
+    >
     <div className="max-w-max-width mx-auto px-margin-desktop py-space-xl space-y-[var(--spacing-section-gap)] font-body-md text-on-surface">
       {/* PAGE HEADER */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-space-md pb-4 border-b border-outline-variant/20">
@@ -283,5 +290,6 @@ export default function DepartmentsPage() {
         ))}
       </div>
     </div>
+    </StatePreview>
   );
 }

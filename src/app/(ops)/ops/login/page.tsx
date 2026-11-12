@@ -28,10 +28,10 @@ function OpsLoginForm() {
   const searchParams = useSearchParams();
 
   // Harness states bar enabled when ?states=1 is in URL
-  const showHarness = searchParams.get('states') === '1';
+  const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
 
   const [harnessState, setHarnessState] = useState<HarnessState>('default');
-  const [email, setEmail] = useState<string>('operator@lexi.internal');
+  const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [rememberSession, setRememberSession] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
