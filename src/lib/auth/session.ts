@@ -12,6 +12,8 @@ export interface SessionUser {
   email: string;
   role: string;
   institutionId: string | null;
+  /** True for backend-free demo sessions (see lib/auth/demo.ts). */
+  isDemo: boolean;
 }
 
 /**
@@ -59,6 +61,7 @@ export async function getSession(): Promise<SessionUser | null> {
       email,
       role,
       institutionId,
+      isDemo: payload.iss === 'zuri-demo',
     };
   } catch {
     return null;

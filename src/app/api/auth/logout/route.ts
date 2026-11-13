@@ -9,13 +9,14 @@ import { cookies } from 'next/headers';
 import { getApiBaseUrl } from '@/lib/api/config';
 import { ENDPOINTS } from '@/lib/api/endpoints';
 import { AUTH_COOKIE_OPTIONS, decodeJwtPayload } from '@/lib/auth/refresh';
+import { isDemoToken } from '@/lib/auth/demo';
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('access_token')?.value;
 
-  // Best-effort remote revocation on the backend
-  if (accessToken) {
+  // Best-effort remote revocation on the backend (demo sessions have nothing to revoke)
+  if (accessToken && !isDemoToken(accessToken)) {
     try {
       const baseUrl = getApiBaseUrl();
       const claims = decodeJwtPayload(accessToken);

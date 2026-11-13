@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Wordmark } from '@/components/brand/Wordmark';
+import { DemoAccessPanel } from '@/components/auth/DemoAccessPanel';
 import {
   TextField,
   PasswordField,
@@ -321,6 +322,8 @@ function OpsLoginForm() {
               Sign in
             </Button>
           </form>
+
+          <DemoAccessPanel shell="ops" />
         </div>
       </main>
 

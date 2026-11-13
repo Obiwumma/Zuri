@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthLayout } from '@/components/auth/AuthLayout';
+import { DemoAccessPanel } from '@/components/auth/DemoAccessPanel';
 import {
   TextField,
   PasswordField,
@@ -313,6 +314,8 @@ function InstitutionLoginForm() {
           Sign in
         </Button>
       </form>
+
+      <DemoAccessPanel shell="institution" />
     </AuthLayout>
   );
 }

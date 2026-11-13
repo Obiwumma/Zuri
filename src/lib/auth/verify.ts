@@ -11,6 +11,7 @@
 import { importSPKI, jwtVerify, errors as joseErrors } from 'jose';
 import { getApiBaseUrl } from '@/lib/api/config';
 import { ENDPOINTS } from '@/lib/api/endpoints';
+import { isDemoToken, verifyDemoToken } from './demo';
 
 export interface VerifiedTokenPayload {
   userId: string;
@@ -105,6 +106,12 @@ export async function getBackendPublicKey(forceRefresh = false): Promise<CryptoK
 export async function verifyAccessToken(token: string): Promise<VerifiedTokenPayload | null> {
   if (!token || typeof token !== 'string') {
     return null;
+  }
+
+  // Demo tokens (HS256) never touch the backend. They are only accepted while
+  // demo mode is enabled; otherwise they are rejected and cookies get cleared.
+  if (isDemoToken(token)) {
+    return verifyDemoToken(token);
   }
 
   try {

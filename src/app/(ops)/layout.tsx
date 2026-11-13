@@ -1,4 +1,5 @@
 import React from 'react';
+import { DemoSessionBadge } from '@/components/auth/DemoSessionBadge';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
@@ -48,6 +49,7 @@ export default async function OpsLayout({
       >
         {children}
       </OpsLayoutClient>
+      {session?.isDemo && <DemoSessionBadge />}
     </OpsThemeRoot>
   );
 }

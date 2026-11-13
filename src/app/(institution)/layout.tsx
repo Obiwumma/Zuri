@@ -1,4 +1,5 @@
 import React from 'react';
+import { DemoSessionBadge } from '@/components/auth/DemoSessionBadge';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
@@ -56,6 +57,7 @@ export default async function InstitutionLayout({
   const isDev = process.env.NODE_ENV === 'development';
 
   return (
+    <>
     <InstitutionLayoutClient
       activeRoute={pathname}
       navGroups={serverNavGroups}
@@ -68,5 +70,7 @@ export default async function InstitutionLayout({
     >
       {children}
     </InstitutionLayoutClient>
+    {session?.isDemo && <DemoSessionBadge />}
+    </>
   );
 }
