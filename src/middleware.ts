@@ -10,7 +10,7 @@ import { verifyAccessToken, PublicKeyFetchError } from '@/lib/auth/verify';
 import {
   canAccessInstitution,
   canAccessOps,
-  BACKEND_ROLES,
+  isStudentRole,
 } from '@/lib/auth/roles';
 
 // Core routes belonging to the institution shell
@@ -196,7 +196,7 @@ export async function middleware(request: NextRequest) {
   if (isOpsLogin) {
     if (isAuthenticated) {
       // Students hitting either shell are rejected
-      if (userRole === BACKEND_ROLES.STUDENT) {
+      if (isStudentRole(userRole)) {
         return clearAuthCookies(
           NextResponse.rewrite(new URL('/access-denied', request.url), { status: 403 })
         );
@@ -218,7 +218,7 @@ export async function middleware(request: NextRequest) {
     // Requires a valid token and canAccessOps(role); otherwise redirect to /ops/login.
     // Do NOT reveal that the route exists (clean redirect without params).
     // Students hitting either shell are rejected.
-    if (!isAuthenticated || !canAccessOps(userRole) || userRole === BACKEND_ROLES.STUDENT) {
+    if (!isAuthenticated || !canAccessOps(userRole) || isStudentRole(userRole)) {
       const redirectRes = NextResponse.redirect(new URL('/ops/login', request.url));
       return shouldClearCookies ? clearAuthCookies(redirectRes) : attachCookies(redirectRes);
     }
@@ -248,7 +248,7 @@ export async function middleware(request: NextRequest) {
   if (isInstitutionLogin) {
     if (isAuthenticated) {
       // Students hitting either shell are rejected
-      if (userRole === BACKEND_ROLES.STUDENT) {
+      if (isStudentRole(userRole)) {
         return clearAuthCookies(
           NextResponse.rewrite(new URL('/access-denied', request.url), { status: 403 })
         );
@@ -278,7 +278,7 @@ export async function middleware(request: NextRequest) {
   if (isInstitutionRoute) {
     // Requires a valid token and canAccessInstitution(role); otherwise redirect to /institution/login.
     // Students hitting either shell are rejected.
-    if (!isAuthenticated || !canAccessInstitution(userRole) || userRole === BACKEND_ROLES.STUDENT) {
+    if (!isAuthenticated || !canAccessInstitution(userRole) || isStudentRole(userRole)) {
       const redirectRes = NextResponse.redirect(new URL('/institution/login', request.url));
       return shouldClearCookies ? clearAuthCookies(redirectRes) : attachCookies(redirectRes);
     }
@@ -301,7 +301,7 @@ export async function middleware(request: NextRequest) {
     if (!isAuthenticated) {
       return attachCookies(NextResponse.redirect(new URL('/institution/login', request.url)));
     }
-    if (userRole === BACKEND_ROLES.STUDENT) {
+    if (isStudentRole(userRole)) {
       return clearAuthCookies(
         NextResponse.rewrite(new URL('/access-denied', request.url), { status: 403 })
       );

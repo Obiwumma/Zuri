@@ -95,6 +95,9 @@ function InstitutionLoginForm() {
           setHarnessState('locked');
           setCountdown(60);
           setErrorMessage(data?.message || 'Too many sign-in attempts. Try again in 60s.');
+        } else if (res.status === 403) {
+          setHarnessState('invalid');
+          setErrorMessage(data?.message || 'This account does not have access here.');
         } else if (res.status === 503) {
           setHarnessState('invalid');
           setErrorMessage('Service is temporarily unavailable. Please try again shortly.');

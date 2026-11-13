@@ -38,11 +38,29 @@ export const FRONTEND_ROLE_LABELS: Record<string, string> = {
 };
 
 /**
+ * Canonicalizes a backend role string: lowercase, trimmed, spaces/hyphens -> "_".
+ * e.g. "Super Admin", "super-admin", "SUPER_ADMIN" -> "super_admin".
+ */
+export function normalizeRole(role: string | null | undefined): string {
+  return (role ?? '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+}
+
+/** True for student accounts, which may not enter either admin shell. */
+export function isStudentRole(role: string | null | undefined): boolean {
+  return normalizeRole(role) === BACKEND_ROLES.STUDENT;
+}
+
+/** True if the role may enter at least one shell (institution or ops). */
+export function canAccessAnyShell(role: string | null | undefined): boolean {
+  return canAccessInstitution(role) || canAccessOps(role);
+}
+
+/**
  * Normalizes and formats a backend role for UI presentation.
  */
 export function getFrontendRoleLabel(role: string | null | undefined): string {
   if (!role) return 'Guest';
-  const normalized = role.toLowerCase().trim();
+  const normalized = normalizeRole(role);
   return FRONTEND_ROLE_LABELS[normalized] || role;
 }
 
@@ -53,7 +71,7 @@ export function getFrontendRoleLabel(role: string | null | undefined): string {
  */
 export function canAccessInstitution(role: string | null | undefined): boolean {
   if (!role) return false;
-  const normalized = role.toLowerCase().trim();
+  const normalized = normalizeRole(role);
   if (normalized === BACKEND_ROLES.STUDENT) return false;
   return (
     normalized === BACKEND_ROLES.INSTITUTION_ADMIN ||
@@ -73,7 +91,7 @@ export function canAccessInstitution(role: string | null | undefined): boolean {
  */
 export function canAccessOps(role: string | null | undefined): boolean {
   if (!role) return false;
-  const normalized = role.toLowerCase().trim();
+  const normalized = normalizeRole(role);
   if (normalized === BACKEND_ROLES.STUDENT) return false;
   return normalized === BACKEND_ROLES.SUPER_ADMIN || normalized === 'ops' || normalized === 'ops_admin';
 }
@@ -87,7 +105,7 @@ export function filterNavGroupsByRole(
   role: string | null | undefined
 ): NavGroup[] {
   if (!role) return [];
-  const normalized = role.toLowerCase().trim();
+  const normalized = normalizeRole(role);
 
   // Full administrative access
   if (normalized === BACKEND_ROLES.INSTITUTION_ADMIN || normalized === 'admin') {

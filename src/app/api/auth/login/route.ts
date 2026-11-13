@@ -17,6 +17,7 @@ import {
   AUTH_COOKIE_OPTIONS,
   REFRESH_COOKIE_MAX_AGE,
 } from '@/lib/auth/refresh';
+import { canAccessAnyShell, isStudentRole } from '@/lib/auth/roles';
 
 export async function POST(request: Request) {
   try {
@@ -133,6 +134,31 @@ export async function POST(request: Request) {
     const now = Math.floor(Date.now() / 1000);
     const accessMaxAge = exp && exp > now ? exp - now : 15 * 60; // fallback 15m
 
+    // Role gate BEFORE any cookie is set. The token claim is what the middleware
+    // enforces, so it takes precedence; the user object is checked as well.
+    const tokenRole = typeof claims?.role === 'string' ? claims.role : '';
+    const gateRole = tokenRole || user.role || '';
+    if (isStudentRole(tokenRole) || isStudentRole(user.role) || !canAccessAnyShell(gateRole)) {
+      // Best-effort: revoke the session the backend just issued.
+      fetch(`${baseUrl}${ENDPOINTS.auth.logoutAll}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${access_token}`, Accept: 'application/json' },
+      }).catch(() => {});
+
+      const isStudent = isStudentRole(tokenRole) || isStudentRole(user.role);
+      return NextResponse.json(
+        {
+          error: 'Forbidden',
+          code: 'ROLE_NOT_PERMITTED',
+          role: gateRole || null,
+          message: isStudent
+            ? 'Student accounts cannot sign in to the Zuri admin console.'
+            : 'This account does not have access to the Zuri admin console.',
+        },
+        { status: 403 }
+      );
+    }
+
     // Set httpOnly session cookies
     const cookieStore = await cookies();
 
@@ -147,7 +173,7 @@ export async function POST(request: Request) {
     });
 
     // Build client payload using user object from response for display
-    const role = user.role || (claims?.role as string) || 'student';
+    const role = gateRole;
     const institutionId = (claims?.institution_id as string) || user.school || '';
     const displayName =
       user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
