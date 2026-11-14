@@ -1,6 +1,7 @@
 // NOTE: This role and shell mapping is pending confirmation with the backend owner.
 
-import type { NavGroup } from '@/components/ui/NavShell';
+import type { NavGroup, NavItem } from '@/components/ui/NavShell';
+import { canAccessPath } from './access';
 
 /**
  * Verified backend roles recognized across Zuri microservices:
@@ -97,68 +98,21 @@ export function canAccessOps(role: string | null | undefined): boolean {
 }
 
 /**
- * Filters the institutional navigation tree based on verified server role permissions.
- * Prevents unauthorized nav groups (e.g. System Governance, Audit Logs) from rendering for lower roles.
+ * Filters the institutional navigation tree using the shared route-access
+ * table (lib/auth/access.ts), so menu links always match what the middleware
+ * allows. Groups left with no links are dropped.
  */
 export function filterNavGroupsByRole(
   navGroups: NavGroup[],
   role: string | null | undefined
 ): NavGroup[] {
   if (!role) return [];
-  const normalized = normalizeRole(role);
+  const filterItems = (items: NavItem[]): NavItem[] =>
+    items
+      .filter((item) => canAccessPath(role, item.href))
+      .map((item) => (item.subItems ? { ...item, subItems: filterItems(item.subItems) } : item));
 
-  // Full administrative access
-  if (normalized === BACKEND_ROLES.INSTITUTION_ADMIN || normalized === 'admin') {
-    return navGroups;
-  }
-
-  // Department Chair / HOD
-  if (normalized === BACKEND_ROLES.DEPARTMENT_ADMIN || normalized === 'hod' || normalized === BACKEND_ROLES.FACULTY_ADMIN) {
-    return navGroups
-      .filter((group) => group.groupName !== 'System & Governance')
-      .map((group) => {
-        if (group.groupName === 'People & Access') {
-          return {
-            ...group,
-            items: group.items.filter((item) => !item.href.includes('/roles')),
-          };
-        }
-        return group;
-      });
-  }
-
-  // Lecturer / Instructor / Academic Staff
-  if (
-    normalized === BACKEND_ROLES.LECTURER ||
-    normalized === BACKEND_ROLES.INSTRUCTOR ||
-    normalized === 'lecturer'
-  ) {
-    const allowedGroups = new Set([
-      'Overview',
-      'Academic Structure',
-      'People & Access',
-      'Content & Knowledge',
-      'Intelligence & Analytics',
-    ]);
-
-    return navGroups
-      .filter((group) => allowedGroups.has(group.groupName))
-      .map((group) => {
-        if (group.groupName === 'Academic Structure') {
-          return {
-            ...group,
-            items: group.items.filter((item) => item.href === '/courses' || item.href === '/timetable'),
-          };
-        }
-        if (group.groupName === 'People & Access') {
-          return {
-            ...group,
-            items: group.items.filter((item) => item.href === '/students'),
-          };
-        }
-        return group;
-      });
-  }
-
-  return [];
+  return navGroups
+    .map((group) => ({ ...group, items: filterItems(group.items) }))
+    .filter((group) => group.items.length > 0);
 }

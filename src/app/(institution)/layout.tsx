@@ -1,5 +1,6 @@
 import React from 'react';
 import { DemoSessionBadge } from '@/components/auth/DemoSessionBadge';
+import { SessionProvider } from '@/components/auth/SessionContext';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
@@ -68,7 +69,15 @@ export default async function InstitutionLayout({
       }}
       isDev={isDev}
     >
-      {children}
+      <SessionProvider
+        value={{
+          role: session?.role ?? null,
+          isDemo: session?.isDemo ?? false,
+          scope: session?.scope ?? { modules: null, division: null },
+        }}
+      >
+        {children}
+      </SessionProvider>
     </InstitutionLayoutClient>
     {session?.isDemo && <DemoSessionBadge />}
     </>

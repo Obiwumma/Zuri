@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useId, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useClientSession } from '@/components/auth/SessionContext';
+import { roleTier } from '@/lib/auth/access';
 import {
   User,
   Shield,
@@ -64,6 +66,9 @@ function SettingsContent() {
   // State harness
   const [harnessState, setHarnessState] = useState<SettingsPageState>('default');
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  // Institution-wide SSO & data-privacy settings are admin-only; HODs and
+  // lecturers get their personal profile, security and notification tabs.
+  const canManageInstitution = roleTier(useClientSession().role) === 'admin';
 
   // Loading States
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -479,6 +484,7 @@ function SettingsContent() {
                 >
                   Profile and organization
                 </button>
+                {canManageInstitution && (
                 <button
                   type="button"
                   onClick={() => setActiveTab('privacy')}
@@ -490,6 +496,7 @@ function SettingsContent() {
                 >
                   SSO and data privacy
                 </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setActiveTab('security')}
@@ -605,7 +612,7 @@ function SettingsContent() {
               )}
 
               {/* TAB 2: SSO and data privacy */}
-              {activeTab === 'privacy' && (
+              {activeTab === 'privacy' && canManageInstitution && (
                 <Card className="flex flex-col gap-6">
                   <div className="flex flex-col pb-4 border-b border-outline-variant/40">
                     <h2 className="text-lg font-semibold text-on-surface font-serif">

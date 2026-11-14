@@ -2,6 +2,8 @@
 
 import React, { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useClientSession } from '@/components/auth/SessionContext';
+import { getActivityScope, applyActivityScope } from '@/lib/auth/activityScope';
 import {
   ScrollText,
   Search,
@@ -126,7 +128,13 @@ function ActivityContent() {
     },
   ];
 
-  const filteredActivities = activities.filter((item) => {
+  // Role scoping: admins see everything; HODs and lecturers see teaching
+  // activity for their department / own courses only (no Governance).
+  const session = useClientSession();
+  const scope = getActivityScope(session.role, session.scope);
+  const scopedActivities = applyActivityScope(activities, scope);
+
+  const filteredActivities = scopedActivities.filter((item) => {
     if (activeCategory !== 'all' && item.category !== activeCategory) return false;
     if (activeDivision !== 'all' && item.division !== activeDivision) return false;
     if (searchQuery.trim()) {
@@ -297,13 +305,16 @@ function ActivityContent() {
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-outline-variant/40">
         <div className="flex flex-col">
           <h1 className="text-2xl sm:text-3xl font-serif text-on-surface font-medium tracking-tight">
-            Audit logs
+            {scope.isFullAccess ? 'Audit logs' : 'Academic activity'}
           </h1>
           <p className="text-body-sm text-on-surface-variant mt-1">
-            Immutable ledger of academic governance, syllabus changes, role assignments, and session events.
+            {scope.isFullAccess
+              ? 'Immutable ledger of academic governance, syllabus changes, role assignments, and session events.'
+              : `${scope.label}.`}
           </p>
         </div>
 
+        {scope.isFullAccess && (
         <div className="flex items-center gap-2">
           <Button
             variant="secondary"
@@ -317,6 +328,7 @@ function ActivityContent() {
             Export audit log
           </Button>
         </div>
+        )}
       </header>
 
       {/* Toast banner */}
@@ -405,10 +417,11 @@ function ActivityContent() {
                 <option value="Knowledge ingest">Knowledge ingest</option>
                 <option value="Assessment">Assessment</option>
                 <option value="Supervision">Supervision</option>
-                <option value="Governance">Governance</option>
+                {scope.isFullAccess && <option value="Governance">Governance</option>}
               </select>
 
               {/* Division dropdown */}
+              {scope.isFullAccess && (
               <select
                 value={activeDivision}
                 onChange={(e) => setActiveDivision(e.target.value)}
@@ -421,10 +434,11 @@ function ActivityContent() {
                 <option value="Social Sciences Division">Social Sciences</option>
                 <option value="University Secretariat">Secretariat</option>
               </select>
+              )}
             </div>
 
             <span className="text-caption text-on-surface-variant font-medium">
-              {filteredActivities.length} audit entries
+              {filteredActivities.length} {scope.isFullAccess ? 'audit entries' : 'entries'}
             </span>
           </section>
 

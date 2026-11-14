@@ -14,6 +14,29 @@ export interface SessionUser {
   institutionId: string | null;
   /** True for backend-free demo sessions (see lib/auth/demo.ts). */
   isDemo: boolean;
+  /**
+   * What this user is responsible for, when the token says so:
+   * lecturers -> their module codes, HODs -> their division/department.
+   * Absent until the backend adds these claims (demo tokens include them).
+   */
+  scope: SessionScope;
+}
+
+export interface SessionScope {
+  modules: string[] | null;
+  division: string | null;
+}
+
+function readScope(payload: Record<string, unknown>): SessionScope {
+  const rawModules = payload.scope_modules ?? payload.modules;
+  const modules = Array.isArray(rawModules)
+    ? rawModules.filter((m): m is string => typeof m === 'string')
+    : null;
+  const rawDivision = payload.scope_division ?? payload.division ?? payload.department;
+  return {
+    modules: modules && modules.length > 0 ? modules : null,
+    division: typeof rawDivision === 'string' && rawDivision ? rawDivision : null,
+  };
 }
 
 /**
@@ -62,6 +85,7 @@ export async function getSession(): Promise<SessionUser | null> {
       role,
       institutionId,
       isDemo: payload.iss === 'zuri-demo',
+      scope: readScope(payload),
     };
   } catch {
     return null;

@@ -14,6 +14,8 @@ export interface DemoPersona {
   role: string;
   email: string;
   shell: DemoShell;
+  /** Sample responsibility scope carried in the demo token. */
+  scope?: { modules?: string[]; division?: string };
 }
 
 export const DEMO_PERSONAS: readonly DemoPersona[] = [
@@ -32,6 +34,7 @@ export const DEMO_PERSONAS: readonly DemoPersona[] = [
     role: 'department_admin',
     email: 'demo.hod@zuri.demo',
     shell: 'institution',
+    scope: { division: 'Medical Sciences Division' },
   },
   {
     id: 'lecturer',
@@ -40,6 +43,7 @@ export const DEMO_PERSONAS: readonly DemoPersona[] = [
     role: 'lecturer',
     email: 'demo.lecturer@zuri.demo',
     shell: 'institution',
+    scope: { modules: ['BIO-410', 'HIST-302'] },
   },
   {
     id: 'ops',

@@ -63,6 +63,8 @@ export async function signDemoToken(persona: DemoPersona): Promise<string> {
     institution_id: persona.shell === 'institution' ? DEMO_INSTITUTION_ID : null,
     token_type: 'access',
     demo: true,
+    ...(persona.scope?.modules ? { scope_modules: persona.scope.modules } : {}),
+    ...(persona.scope?.division ? { scope_division: persona.scope.division } : {}),
   })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setIssuer(DEMO_ISSUER)

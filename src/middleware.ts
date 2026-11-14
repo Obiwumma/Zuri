@@ -12,6 +12,7 @@ import {
   canAccessOps,
   isStudentRole,
 } from '@/lib/auth/roles';
+import { canAccessPath } from '@/lib/auth/access';
 
 // Core routes belonging to the institution shell
 const INSTITUTIONAL_APP_PATHS = [
@@ -281,6 +282,17 @@ export async function middleware(request: NextRequest) {
     if (!isAuthenticated || !canAccessInstitution(userRole) || isStudentRole(userRole)) {
       const redirectRes = NextResponse.redirect(new URL('/institution/login', request.url));
       return shouldClearCookies ? clearAuthCookies(redirectRes) : attachCookies(redirectRes);
+    }
+
+    // Page-level role check (shared table with the navigation menu).
+    // Signed-in staff opening a page their role may not use get 403.
+    const targetPath = pathname.startsWith('/institution/')
+      ? pathname.replace(/^\/institution/, '') || '/dashboard'
+      : pathname;
+    if (!canAccessPath(userRole, targetPath)) {
+      return attachCookies(
+        NextResponse.rewrite(new URL('/access-denied', request.url), { status: 403 })
+      );
     }
 
     // Handle /institution/<subpath> rewriting to /<subpath> if requested under the /institution prefix
