@@ -10,6 +10,9 @@ import {
   EmptyState,
   Skeleton,
   Alert,
+  DetailDrawer,
+  splitColumns,
+  columnsToFields,
 } from '@/components/ui';
 import {
   Search,
@@ -322,6 +325,11 @@ function CoursesContent() {
     },
   ];
 
+  // Progressive disclosure: the table keeps only what's needed to find a
+  // record; every other column opens in the detail drawer on row click.
+  const [selected, setSelected] = useState<CourseRecord | null>(null);
+  const { visible: tableColumns, hidden: drawerColumns } = splitColumns(columns, ['Course & curriculum', 'Faculty lead', 'Enrollment', 'Status']);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
       {/* Dev State Simulation Harness Bar (only when ?states=1) */}
@@ -550,7 +558,8 @@ function CoursesContent() {
             <DataTable
               title="Curriculum directory"
               subtitle="Registered course modules, convening tutors, and student cohort allocations."
-              columns={columns}
+              columns={tableColumns}
+              onRowClick={(row) => setSelected(row)}
               data={filteredCourses}
               keyExtractor={(row) => row.code}
               emptyTitle={
@@ -601,6 +610,16 @@ function CoursesContent() {
           </footer>
         </div>
       )}
+
+      <DetailDrawer
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        ariaLabel="Course details"
+        eyebrow="Course"
+        title={selected ? `${selected.code} · ${selected.title}` : ''}
+        subtitle={selected ? selected.subtitle : undefined}
+        fields={selected ? [...columnsToFields(drawerColumns, selected), { label: 'Lecture cadence', value: selected.lectureCadence }, { label: 'Hall', value: selected.hallLocation }, { label: 'College', value: selected.college }] : []}
+      />
     </div>
   );
 }

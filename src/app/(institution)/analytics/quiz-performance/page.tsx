@@ -10,6 +10,7 @@ import {
   EmptyState,
   Skeleton,
   Alert,
+  useDisclosure,
 } from '@/components/ui';
 import {
   TrendingUp,
@@ -20,6 +21,7 @@ import {
   FileSpreadsheet,
   Database,
   ArrowRight,
+  ChevronDown,
 } from 'lucide-react';
 
 export type AnalyticsState = 'default' | 'loading' | 'empty' | 'error';
@@ -216,6 +218,16 @@ function QuizPerformanceContent() {
       ),
     },
   ];
+
+  // Progressive disclosure: most important rows and key columns first;
+  // "Show all" reveals every row and the full metric breakdown.
+  const BREAKDOWN_PREVIEW = 3;
+  const breakdown = useDisclosure({ persistKey: 'analytics.quiz.breakdown' });
+  const orderedRows = [...mockQuizBreakdown].sort((a, b) => a.successRate - b.successRate);
+  const breakdownRows = breakdown.isOpen ? orderedRows : orderedRows.slice(0, BREAKDOWN_PREVIEW);
+  const breakdownColumns = breakdown.isOpen
+    ? columns
+    : columns.filter((col) => ['Course & curriculum', 'Mastery rate', 'Mastery rating'].includes(col.header));
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
@@ -527,10 +539,24 @@ function QuizPerformanceContent() {
           <section className="flex flex-col">
             <DataTable
               title="Course mastery breakdown"
-              subtitle="Formative attempts, concept mastery thresholds, and weekly performance trends."
-              columns={columns}
-              data={mockQuizBreakdown}
+              subtitle={breakdown.isOpen ? 'Formative attempts, concept mastery thresholds, and weekly performance trends.' : `${BREAKDOWN_PREVIEW} courses with the lowest mastery`}
+              columns={breakdownColumns}
+              data={breakdownRows}
               keyExtractor={(row) => row.code}
+              actions={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  aria-expanded={breakdown.isOpen}
+                  onClick={breakdown.toggle}
+                >
+                  <span>{breakdown.isOpen ? 'Show less' : `Show all ${mockQuizBreakdown.length} courses`}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-200 ${breakdown.isOpen ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
+                  />
+                </Button>
+              }
             />
           </section>
         </>

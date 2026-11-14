@@ -10,6 +10,9 @@ import {
   EmptyState,
   Skeleton,
   Alert,
+  DetailDrawer,
+  splitColumns,
+  columnsToFields,
 } from '@/components/ui';
 import {
   Search,
@@ -263,6 +266,11 @@ function TimetableContent() {
     },
   ];
 
+  // Progressive disclosure: the table keeps only what's needed to find a
+  // record; every other column opens in the detail drawer on row click.
+  const [selected, setSelected] = useState<ScheduleSlot | null>(null);
+  const { visible: tableColumns, hidden: drawerColumns } = splitColumns(columns, ['Day & time slot', 'Course & curriculum', 'Delivery status']);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
       {/* Dev State Simulation Harness Bar (only when ?states=1) */}
@@ -493,7 +501,8 @@ function TimetableContent() {
             <DataTable
               title="Schedule directory"
               subtitle="Timetabled lectures, tutorial supervisions, and laboratory teaching hours."
-              columns={columns}
+              columns={tableColumns}
+              onRowClick={(row) => setSelected(row)}
               data={filteredSlots}
               keyExtractor={(row) => row.id}
               emptyTitle={
@@ -544,6 +553,16 @@ function TimetableContent() {
           </footer>
         </div>
       )}
+
+      <DetailDrawer
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        ariaLabel="Timetabled session details"
+        eyebrow="Timetabled session"
+        title={selected ? `${selected.moduleCode} · ${selected.moduleTitle}` : ''}
+        subtitle={selected ? `${selected.day}, ${selected.timeSlot}` : undefined}
+        fields={selected ? [...columnsToFields(drawerColumns, selected), { label: 'Venue', value: selected.venue }, { label: 'Division', value: selected.division }] : []}
+      />
     </div>
   );
 }

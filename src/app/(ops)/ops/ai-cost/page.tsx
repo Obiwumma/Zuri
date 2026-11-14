@@ -4,18 +4,13 @@ import React, { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Coins,
-  TrendingDown,
-  Server,
-  Activity,
-  ShieldAlert,
   SlidersHorizontal,
   CheckCircle2,
   RefreshCw,
   Download,
-  AlertTriangle,
 } from 'lucide-react';
 import {
-  KpiTile,
+  CollapsibleKpiTile,
   DataTable,
   Column,
   Button,
@@ -424,39 +419,39 @@ function OpsAiCostContent() {
           {/* Section: 4 KPI Tiles */}
           <section
             aria-label="Cost and request KPIs"
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-start"
           >
-            <KpiTile
+            <CollapsibleKpiTile
               label="Today's request ingress"
               value="1,642,890"
               delta={{ value: '2,380 req/s live', direction: 'up' }}
-              icon={Activity}
               subtext="Throughput peak: 3,140 req/s"
               className="bg-ops-panel border-ops-border text-ops-text"
+              persistKey="ops.cost.1"
             />
-            <KpiTile
+            <CollapsibleKpiTile
               label="Cache interception rate"
               value="68.4%"
               delta={{ value: '+4.2% vs target', direction: 'up' }}
-              icon={TrendingDown}
               subtext="1,031,735 frontier LLM calls bypassed"
               className="bg-ops-panel border-ops-border text-ops-text"
+              persistKey="ops.cost.2"
             />
-            <KpiTile
+            <CollapsibleKpiTile
               label="Gross spend (24h)"
               value="$418.20"
               delta={{ value: '-$1,842 saved', direction: 'up' }}
-              icon={Coins}
               subtext="Estimated month: $12,850"
               className="bg-ops-panel border-ops-border text-ops-text"
+              persistKey="ops.cost.3"
             />
-            <KpiTile
+            <CollapsibleKpiTile
               label="Provider fallback rate"
               value="0.04%"
               delta={{ value: '674 reroutes', direction: 'neutral' }}
-              icon={ShieldAlert}
               subtext="Zero user-facing 5xx disruptions"
               className="bg-ops-panel border-ops-border text-ops-text"
+              persistKey="ops.cost.4"
             />
           </section>
 

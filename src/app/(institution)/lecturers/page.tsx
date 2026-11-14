@@ -10,6 +10,9 @@ import {
   EmptyState,
   Skeleton,
   Alert,
+  DetailDrawer,
+  splitColumns,
+  columnsToFields,
 } from '@/components/ui';
 import {
   Search,
@@ -265,6 +268,11 @@ function LecturersContent() {
     },
   ];
 
+  // Progressive disclosure: the table keeps only what's needed to find a
+  // record; every other column opens in the detail drawer on row click.
+  const [selected, setSelected] = useState<FacultyRecord | null>(null);
+  const { visible: tableColumns, hidden: drawerColumns } = splitColumns(columns, ['Lecturer & academic title', 'Department & college', 'Supervision status']);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
       {/* Dev State Simulation Harness Bar (only when ?states=1) */}
@@ -495,7 +503,8 @@ function LecturersContent() {
             <DataTable
               title="Faculty registry"
               subtitle="Collegiate teaching Fellows, statutory professors, and tutorial supervisors."
-              columns={columns}
+              columns={tableColumns}
+              onRowClick={(row) => setSelected(row)}
               data={filteredFaculty}
               keyExtractor={(row) => row.id}
               emptyTitle={
@@ -546,6 +555,16 @@ function LecturersContent() {
           </footer>
         </div>
       )}
+
+      <DetailDrawer
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        ariaLabel="Faculty member details"
+        eyebrow="Faculty member"
+        title={selected ? selected.name : ''}
+        subtitle={selected ? selected.academicTitle : undefined}
+        fields={selected ? [...columnsToFields(drawerColumns, selected), { label: 'Division', value: selected.division }] : []}
+      />
     </div>
   );
 }

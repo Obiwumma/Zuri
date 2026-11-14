@@ -15,7 +15,6 @@ import {
   FileText,
   Search,
   RefreshCw,
-  AlertTriangle,
   CheckCircle2,
   SlidersHorizontal,
   Clock,
@@ -23,7 +22,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import {
-  KpiTile,
+  CollapsibleKpiTile,
   DataTable,
   Column,
   Button,
@@ -511,39 +510,39 @@ function OpsHealthContent() {
           {/* Section: 4 Core KPIs (Overview template: 2-4 KPIs) */}
           <section
             aria-label="Key health metrics"
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-start"
           >
-            <KpiTile
+            <CollapsibleKpiTile
               label="Overall status"
               value="Operational"
               delta={{ value: '99.98% 30d uptime', direction: 'up' }}
-              icon={Activity}
               subtext="Zero active high-severity incidents"
               className="bg-ops-panel border-ops-border text-ops-text"
+              persistKey="ops.health.1"
             />
-            <KpiTile
+            <CollapsibleKpiTile
               label="Monitored services"
               value="7 / 8"
               delta={{ value: '1 degraded', direction: 'neutral' }}
-              icon={Server}
               subtext="Target availability: 99.99%"
               className="bg-ops-panel border-ops-border text-ops-text"
+              persistKey="ops.health.2"
             />
-            <KpiTile
+            <CollapsibleKpiTile
               label="Median latency"
               value="22ms"
               delta={{ value: '+2ms nominal', direction: 'up' }}
-              icon={Clock}
               subtext="P95 across internal endpoints"
               className="bg-ops-panel border-ops-border text-ops-text"
+              persistKey="ops.health.3"
             />
-            <KpiTile
+            <CollapsibleKpiTile
               label="Active alerts"
               value="1 warning"
               delta={{ value: '0 critical', direction: 'neutral' }}
-              icon={AlertTriangle}
               subtext="Document OCR worker queue"
               className="bg-ops-panel border-ops-border text-ops-text"
+              persistKey="ops.health.4"
             />
           </section>
 

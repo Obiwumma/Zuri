@@ -9,6 +9,7 @@ import {
   EmptyState,
   Skeleton,
   Alert,
+  useDisclosure,
 } from '@/components/ui';
 import {
   TrendingUp,
@@ -19,6 +20,7 @@ import {
   Database,
   ArrowRight,
   Clock,
+  ChevronDown,
 } from 'lucide-react';
 
 export type AnalyticsState = 'default' | 'loading' | 'empty' | 'error';
@@ -169,6 +171,16 @@ function AiUsageContent() {
       ),
     },
   ];
+
+  // Progressive disclosure: most important rows and key columns first;
+  // "Show all" reveals every row and the full metric breakdown.
+  const BREAKDOWN_PREVIEW = 3;
+  const breakdown = useDisclosure({ persistKey: 'analytics.usage.breakdown' });
+  const orderedRows = [...mockDepartmentUsage].sort((a, b) => b.totalActivity - a.totalActivity);
+  const breakdownRows = breakdown.isOpen ? orderedRows : orderedRows.slice(0, BREAKDOWN_PREVIEW);
+  const breakdownColumns = breakdown.isOpen
+    ? columns
+    : columns.filter((col) => ['Department & division', 'Total activity', 'Growth vs last term'].includes(col.header));
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
@@ -473,10 +485,24 @@ function AiUsageContent() {
           <section className="flex flex-col">
             <DataTable
               title="Departmental activity breakdown"
-              subtitle="Volume, curriculum coverage, and engagement growth across collegiate faculties."
-              columns={columns}
-              data={mockDepartmentUsage}
+              subtitle={breakdown.isOpen ? 'Volume, curriculum coverage, and engagement growth across collegiate faculties.' : `Top ${BREAKDOWN_PREVIEW} of ${mockDepartmentUsage.length} departments by total activity`}
+              columns={breakdownColumns}
+              data={breakdownRows}
               keyExtractor={(row) => row.department}
+              actions={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  aria-expanded={breakdown.isOpen}
+                  onClick={breakdown.toggle}
+                >
+                  <span>{breakdown.isOpen ? 'Show less' : `Show all ${mockDepartmentUsage.length} departments`}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-200 ${breakdown.isOpen ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
+                  />
+                </Button>
+              }
             />
           </section>
         </>

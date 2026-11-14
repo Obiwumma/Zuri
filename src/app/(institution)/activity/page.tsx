@@ -26,6 +26,9 @@ import {
   Alert,
   Skeleton,
   EmptyState,
+  DetailDrawer,
+  splitColumns,
+  columnsToFields,
 } from '@/components/ui';
 
 export type ActivityPageState = 'default' | 'loading' | 'empty' | 'error';
@@ -220,6 +223,11 @@ function ActivityContent() {
       ),
     },
   ];
+
+  // Progressive disclosure: the table keeps only what's needed to find a
+  // record; every other column opens in the detail drawer on row click.
+  const [selected, setSelected] = useState<ActivityItem | null>(null);
+  const { visible: tableColumns, hidden: drawerColumns } = splitColumns(columns, ['Event ID and time', 'Category', 'Activity and description', 'Status']);
 
   return (
     <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-[1280px] mx-auto text-on-surface">
@@ -420,7 +428,8 @@ function ActivityContent() {
           {/* Main DataTable */}
           <section className="bg-surface-container-lowest rounded-md border border-outline-variant overflow-hidden">
             <DataTable
-              columns={columns}
+              columns={tableColumns}
+              onRowClick={(row) => setSelected(row)}
               data={filteredActivities}
               keyExtractor={(row) => row.id}
               className="border-0 rounded-none"
@@ -453,6 +462,16 @@ function ActivityContent() {
           </section>
         </>
       )}
+
+      <DetailDrawer
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        ariaLabel="Audit record details"
+        eyebrow="Audit record"
+        title={selected ? selected.title : ''}
+        subtitle={selected ? `${selected.id} · ${selected.timestamp}` : undefined}
+        fields={selected ? [...columnsToFields(drawerColumns, selected), { label: 'Description', value: selected.description, wide: true }] : []}
+      />
     </div>
   );
 }

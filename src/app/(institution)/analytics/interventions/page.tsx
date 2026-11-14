@@ -10,6 +10,7 @@ import {
   EmptyState,
   Skeleton,
   Alert,
+  useDisclosure,
 } from '@/components/ui';
 import {
   TrendingUp,
@@ -19,6 +20,7 @@ import {
   FileSpreadsheet,
   Database,
   ArrowRight,
+  ChevronDown,
 } from 'lucide-react';
 
 export type AnalyticsState = 'default' | 'loading' | 'empty' | 'error';
@@ -177,6 +179,16 @@ function InterventionsContent() {
       ),
     },
   ];
+
+  // Progressive disclosure: most important rows and key columns first;
+  // "Show all" reveals every row and the full metric breakdown.
+  const BREAKDOWN_PREVIEW = 3;
+  const breakdown = useDisclosure({ persistKey: 'analytics.interventions.breakdown' });
+  const orderedRows = [...mockCourseInterventions].sort((a, b) => parseFloat(a.rate) - parseFloat(b.rate));
+  const breakdownRows = breakdown.isOpen ? orderedRows : orderedRows.slice(0, BREAKDOWN_PREVIEW);
+  const breakdownColumns = breakdown.isOpen
+    ? columns
+    : columns.filter((col) => ['Course & curriculum', 'Flags logged', 'Resolution rate'].includes(col.header));
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
@@ -490,10 +502,24 @@ function InterventionsContent() {
           <section className="flex flex-col">
             <DataTable
               title="Departmental intervention breakdown"
-              subtitle="Course intervention frequency, tutor action rate, and weekly trajectory."
-              columns={columns}
-              data={mockCourseInterventions}
+              subtitle={breakdown.isOpen ? 'Course intervention frequency, tutor action rate, and weekly trajectory.' : `${BREAKDOWN_PREVIEW} courses with the lowest resolution rate`}
+              columns={breakdownColumns}
+              data={breakdownRows}
               keyExtractor={(row) => row.code}
+              actions={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  aria-expanded={breakdown.isOpen}
+                  onClick={breakdown.toggle}
+                >
+                  <span>{breakdown.isOpen ? 'Show less' : `Show all ${mockCourseInterventions.length} courses`}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-200 ${breakdown.isOpen ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
+                  />
+                </Button>
+              }
             />
           </section>
         </>

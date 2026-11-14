@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { StatePreview } from '@/components/ui/StatePreview';
+import { useDisclosure, DisclosurePanel } from '@/components/ui/Disclosure';
 
 interface DepartmentCard {
   code: string;
@@ -17,6 +18,79 @@ interface DepartmentCard {
   engagementStatus: 'Optimal' | 'High' | 'Moderate';
   subfields: string;
   icon: string;
+}
+
+/**
+ * Department card with progressive disclosure.
+ * Closed: code, name, division, student count. "Details" reveals head of
+ * department, programmes, subject areas, engagement and ingestion.
+ */
+function DepartmentTile({ dept }: { dept: DepartmentCard }) {
+  const { isOpen, triggerProps, panelId } = useDisclosure();
+  return (
+    <article className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/25 hover:border-outline-variant/60 transition-all flex flex-col">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+          <Icon className="text-[18px]">{dept.icon}</Icon>
+        </span>
+        <span className="font-mono text-xs px-2 py-0.5 rounded bg-primary-container text-on-primary-container font-semibold">
+          {dept.code}
+        </span>
+      </div>
+
+      <h2 className="font-serif text-lg font-bold text-primary leading-tight">{dept.name}</h2>
+      <span className="text-xs text-secondary font-medium block mt-0.5">{dept.division}</span>
+
+      <DisclosurePanel id={panelId} isOpen={isOpen}>
+        <div className="mt-3 pt-3 border-t border-outline-variant/15 flex flex-col gap-2">
+          <span className="self-start px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-surface-container-high text-on-surface">
+            {dept.engagementStatus} engagement
+          </span>
+          <p className="text-xs text-on-surface-variant/80 leading-relaxed">{dept.subfields}</p>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-on-surface-variant/70">Head of Department</span>
+            <span className="font-medium text-on-surface text-right">{dept.hodName}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-on-surface-variant/70">Degree programmes</span>
+            <span className="font-semibold text-primary">{dept.programmesCount} active</span>
+          </div>
+          <div className="flex flex-col gap-1 mt-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-on-surface-variant/70">Knowledge graph ingested</span>
+              <span className="font-semibold text-on-surface">{dept.curriculumIngestedPct}%</span>
+            </div>
+            <div className="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+              <div className="bg-primary h-1.5 rounded-full" style={{ width: `${dept.curriculumIngestedPct}%` }} />
+            </div>
+          </div>
+          <button
+            type="button"
+            className="self-start mt-1 text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer rounded-xs outline-none focus-visible:focus-ring"
+            onClick={() => alert(`Opening departmental catalog for ${dept.name}`)}
+          >
+            View department <Icon className="text-[14px]">arrow_forward</Icon>
+          </button>
+        </div>
+      </DisclosurePanel>
+
+      <div className="mt-auto pt-4">
+        <div className="pt-3 border-t border-outline-variant/15 flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-on-surface">
+            {dept.enrolledCount.toLocaleString()} students
+          </span>
+          <button
+            type="button"
+            {...triggerProps}
+            className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer rounded-xs outline-none focus-visible:focus-ring"
+          >
+            {isOpen ? 'Hide details' : 'Details'}
+            <Icon className={`text-[16px] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</Icon>
+          </button>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export default function DepartmentsPage() {
@@ -225,68 +299,7 @@ export default function DepartmentsPage() {
       {/* MAIN DEPARTMENT CARDS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--spacing-gutter)]">
         {filteredDepartments.map((dept) => (
-          <article
-            key={dept.code}
-            className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/25 hover:border-outline-variant/60 transition-all flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
-                    <Icon className="text-[18px]">{dept.icon}</Icon>
-                  </span>
-                  <span className="font-mono text-xs px-2 py-0.5 rounded bg-primary-container text-on-primary-container font-semibold">
-                    {dept.code}
-                  </span>
-                </div>
-
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-surface-container-high text-on-surface">
-                  {dept.engagementStatus} Engagement
-                </span>
-              </div>
-
-              <h2 className="font-serif text-lg font-bold text-primary leading-tight">
-                {dept.name}
-              </h2>
-              <span className="text-xs text-secondary font-medium block mt-0.5">{dept.division}</span>
-              <p className="text-xs text-on-surface-variant/80 mt-2 leading-relaxed">
-                {dept.subfields}
-              </p>
-
-              <div className="mt-4 pt-3 border-t border-outline-variant/15 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-on-surface-variant/70">Head of Department:</span>
-                  <span className="font-medium text-on-surface">{dept.hodName}</span>
-                </div>
-
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-on-surface-variant/70">Degree Programmes:</span>
-                  <span className="font-semibold text-primary">{dept.programmesCount} Active</span>
-                </div>
-
-                <div className="flex flex-col gap-1 mt-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-on-surface-variant/70">Knowledge Graph Ingested:</span>
-                    <span className="font-semibold text-on-surface">{dept.curriculumIngestedPct}%</span>
-                  </div>
-                  <div className="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-primary h-1.5 rounded-full" style={{ width: `${dept.curriculumIngestedPct}%` }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 pt-3 border-t border-outline-variant/15 flex items-center justify-between">
-              <span className="text-xs font-semibold text-on-surface">{dept.enrolledCount.toLocaleString()} Students</span>
-              <button
-                className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer"
-                onClick={() => alert(`Opening departmental catalog for ${dept.name}`)}
-                type="button"
-              >
-                View Department <Icon className="text-[14px]">arrow_forward</Icon>
-              </button>
-            </div>
-          </article>
+          <DepartmentTile key={dept.code} dept={dept} />
         ))}
       </div>
     </div>

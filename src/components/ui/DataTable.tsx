@@ -96,6 +96,18 @@ export function DataTable<T>({
             <div
               key={keyExtractor(row, rowIdx)}
               onClick={() => onRowClick?.(row)}
+              role={onRowClick ? 'button' : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
+                    }
+                  : undefined
+              }
               className={`py-3 px-1 flex items-center justify-between gap-3 ${
                 onRowClick ? 'cursor-pointer hover:bg-surface-container -mx-2 px-3 rounded' : ''
               }`}
@@ -171,8 +183,19 @@ export function DataTable<T>({
                 <tr
                   key={keyExtractor(row, rowIdx)}
                   onClick={() => onRowClick?.(row)}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onRowClick(row);
+                          }
+                        }
+                      : undefined
+                  }
                   className={`h-12 hover:bg-surface-container transition-colors ${
-                    onRowClick ? 'cursor-pointer' : ''
+                    onRowClick ? 'cursor-pointer outline-none focus-visible:bg-surface-container focus-visible:focus-ring' : ''
                   }`}
                 >
                   {columns.map((col, colIdx) => (

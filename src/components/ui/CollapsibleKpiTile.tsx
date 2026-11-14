@@ -69,7 +69,7 @@ export function CollapsibleKpiTile({
             aria-hidden="true"
           />
         </span>
-        <span className="block mt-1.5 text-h1 font-serif font-medium text-on-surface tracking-tight tabular-nums truncate">
+        <span className="block mt-1.5 text-h1 font-serif [data-theme='ops']_&:font-sans [data-theme='ops']_&:font-semibold font-medium text-on-surface tracking-tight tabular-nums truncate">
           {value}
         </span>
         {alert && (

@@ -324,6 +324,12 @@ function StudentsContent() {
     },
   ];
 
+  // Progressive disclosure: matriculation ID, division, level and engagement
+  // live in the student drawer (row click) instead of the table.
+  const tableColumns = columns.filter((c) =>
+    ['Student & college', 'Course module', 'Status'].includes(c.header)
+  );
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Dev State Simulation Harness Bar (only when ?states=1) */}
@@ -517,7 +523,7 @@ function StudentsContent() {
       ) : (
         <div className="flex flex-col">
           <DataTable
-            columns={columns}
+            columns={tableColumns}
             data={filteredStudents}
             keyExtractor={(row) => row.id}
             isLoading={state === 'loading'}

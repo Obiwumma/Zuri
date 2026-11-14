@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { StatePreview } from '@/components/ui/StatePreview';
+import { useDisclosure, DisclosurePanel } from '@/components/ui/Disclosure';
 
 interface MilestoneCard {
   id: string;
@@ -17,6 +18,79 @@ interface MilestoneCard {
   audience: string;
   status: 'Confirmed' | 'Gazette Published' | 'Action Required' | 'Pending Senate';
   description: string;
+}
+
+/**
+ * Calendar milestone with progressive disclosure.
+ * Closed: date, category, status and title. Click to reveal description,
+ * venue, audience and the Gazette link. "Action Required" stays prominent.
+ */
+function MilestoneItem({ m }: { m: MilestoneCard }) {
+  const { isOpen, triggerProps, panelId } = useDisclosure();
+  const needsAction = m.status === 'Action Required';
+  return (
+    <article className="bg-surface-container-lowest rounded-xl border border-outline-variant/25 hover:border-outline-variant/60 transition-all">
+      <button
+        type="button"
+        {...triggerProps}
+        className="w-full text-left p-4 sm:p-5 flex gap-4 sm:gap-5 items-center cursor-pointer rounded-xl outline-none focus-visible:focus-ring"
+      >
+        <span className="bg-surface-container-low px-3 py-2 rounded-lg border border-outline-variant/20 flex flex-col items-center justify-center shrink-0 min-w-[84px] text-center">
+          <span className="font-label-caps text-[11px] uppercase tracking-wider text-secondary font-semibold">
+            {m.dayBadge}
+          </span>
+          <span className="font-serif text-lg font-bold text-primary">
+            {m.date.split(' ')[0]} {m.date.split(' ')[1]}
+          </span>
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface">
+              {m.category}
+            </span>
+            <span
+              className={`font-label-caps text-[11px] font-semibold ${
+                needsAction ? 'text-error' : 'text-on-surface-variant'
+              }`}
+            >
+              {m.status}
+            </span>
+          </span>
+          <span className="block font-serif text-lg font-bold text-primary mt-1 leading-snug">{m.title}</span>
+        </span>
+        <Icon
+          className={`text-[20px] text-on-surface-variant shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        >
+          expand_more
+        </Icon>
+      </button>
+
+      <DisclosurePanel id={panelId} isOpen={isOpen} className="px-4 sm:px-5 pb-4 sm:pb-5">
+        <div className="sm:pl-[104px]">
+          <p className="text-xs text-on-surface-variant/90 leading-relaxed">{m.description}</p>
+          <div className="mt-3 pt-3 border-t border-outline-variant/15 flex flex-wrap items-center justify-between gap-2 text-xs text-on-surface-variant">
+            <div>
+              <span className="font-mono text-[10px] mr-2">{m.termWeek}</span>
+              <span>Venue: </span>
+              <span className="font-semibold text-on-surface">{m.venue}</span>
+              <span className="mx-2">•</span>
+              <span>Target: </span>
+              <span className="font-medium text-on-surface">{m.audience}</span>
+            </div>
+            <button
+              className="text-primary font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer rounded-xs outline-none focus-visible:focus-ring"
+              onClick={() => alert(`Opening Gazette notice for ${m.title}`)}
+              type="button"
+            >
+              Gazette notice <Icon className="text-[14px]">arrow_forward</Icon>
+            </button>
+          </div>
+        </div>
+      </DisclosurePanel>
+    </article>
+  );
 }
 
 export default function AcademicCalendarPage() {
@@ -159,57 +233,7 @@ export default function AcademicCalendarPage() {
       {/* CHRONOLOGICAL MILESTONE ROADMAP CARDS */}
       <div className="flex flex-col gap-space-md">
         {filteredMilestones.map((m) => (
-          <article
-            key={m.id}
-            className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/25 hover:border-outline-variant/60 transition-all flex flex-col sm:flex-row gap-5 items-start"
-          >
-            {/* DATE BADGE COLUMN */}
-            <div className="bg-surface-container-low px-4 py-3 rounded-lg border border-outline-variant/20 flex flex-col items-center justify-center shrink-0 min-w-[100px] text-center">
-              <span className="font-label-caps text-[11px] uppercase tracking-wider text-secondary font-semibold">
-                {m.dayBadge}
-              </span>
-              <span className="font-serif text-xl font-bold text-primary my-0.5">{m.date.split(' ')[0]} {m.date.split(' ')[1]}</span>
-              <span className="font-mono text-[10px] text-on-surface-variant/70">{m.termWeek}</span>
-            </div>
-
-            {/* MILESTONE DETAILS COLUMN */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface">
-                  {m.category}
-                </span>
-                <span className="font-label-caps text-[11px] font-semibold text-primary">
-                  {m.status}
-                </span>
-              </div>
-
-              <h3 className="font-serif text-lg font-bold text-primary mt-1.5 leading-snug">
-                {m.title}
-              </h3>
-
-              <p className="text-xs text-on-surface-variant/90 mt-1.5 leading-relaxed">
-                {m.description}
-              </p>
-
-              <div className="mt-4 pt-3 border-t border-outline-variant/15 flex flex-wrap items-center justify-between gap-2 text-xs text-on-surface-variant">
-                <div>
-                  <span>Venue: </span>
-                  <span className="font-semibold text-on-surface">{m.venue}</span>
-                  <span className="mx-2">•</span>
-                  <span>Target: </span>
-                  <span className="font-medium text-on-surface">{m.audience}</span>
-                </div>
-
-                <button
-                  className="text-primary font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
-                  onClick={() => alert(`Opening Gazette notice for ${m.title}`)}
-                  type="button"
-                >
-                  Gazette Notice <Icon className="text-[14px]">arrow_forward</Icon>
-                </button>
-              </div>
-            </div>
-          </article>
+          <MilestoneItem key={m.id} m={m} />
         ))}
       </div>
     </div>

@@ -10,6 +10,9 @@ import {
   EmptyState,
   Skeleton,
   Alert,
+  DetailDrawer,
+  splitColumns,
+  columnsToFields,
 } from '@/components/ui';
 import {
   Search,
@@ -247,6 +250,11 @@ function LibraryContent() {
     },
   ];
 
+  // Progressive disclosure: the table keeps only what's needed to find a
+  // record; every other column opens in the detail drawer on row click.
+  const [selected, setSelected] = useState<LibraryRecord | null>(null);
+  const { visible: tableColumns, hidden: drawerColumns } = splitColumns(columns, ['Resource title & course', 'Category', 'Indexing status']);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
       {/* Dev State Simulation Harness Bar (only when ?states=1) */}
@@ -478,7 +486,8 @@ function LibraryContent() {
             <DataTable
               title="Curriculum resources"
               subtitle="Indexed academic syllabi, lecture transcripts, and collegiate research materials."
-              columns={columns}
+              columns={tableColumns}
+              onRowClick={(row) => setSelected(row)}
               data={filteredRecords}
               keyExtractor={(row) => row.id}
               emptyTitle={
@@ -529,6 +538,16 @@ function LibraryContent() {
           </footer>
         </div>
       )}
+
+      <DetailDrawer
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        ariaLabel="Library resource details"
+        eyebrow="Library resource"
+        title={selected ? selected.title : ''}
+        subtitle={selected ? `${selected.moduleCode} · ${selected.author}` : undefined}
+        fields={selected ? [...columnsToFields(drawerColumns, selected), { label: 'Department', value: selected.department }] : []}
+      />
     </div>
   );
 }

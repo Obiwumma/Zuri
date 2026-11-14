@@ -10,6 +10,9 @@ import {
   EmptyState,
   Skeleton,
   Alert,
+  DetailDrawer,
+  splitColumns,
+  columnsToFields,
 } from '@/components/ui';
 import {
   Search,
@@ -234,6 +237,11 @@ function StaffContent() {
       ),
     },
   ];
+
+  // Progressive disclosure: the table keeps only what's needed to find a
+  // record; every other column opens in the detail drawer on row click.
+  const [selected, setSelected] = useState<StaffRecord | null>(null);
+  const { visible: tableColumns, hidden: drawerColumns } = splitColumns(columns, ['Staff member & email', 'Job title & category', 'Directory status']);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
@@ -465,7 +473,8 @@ function StaffContent() {
             <DataTable
               title="Staff directory"
               subtitle="Administrative and technical personnel supporting collegiate teaching and department operations."
-              columns={columns}
+              columns={tableColumns}
+              onRowClick={(row) => setSelected(row)}
               data={filteredStaff}
               keyExtractor={(row) => row.id}
               emptyTitle={
@@ -516,6 +525,16 @@ function StaffContent() {
           </footer>
         </div>
       )}
+
+      <DetailDrawer
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        ariaLabel="Staff member details"
+        eyebrow="Staff member"
+        title={selected ? selected.name : ''}
+        subtitle={selected ? selected.email : undefined}
+        fields={selected ? [...columnsToFields(drawerColumns, selected), { label: 'Division', value: selected.division }] : []}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { StatePreview } from '@/components/ui/StatePreview';
+import { useDisclosure, DisclosurePanel } from '@/components/ui/Disclosure';
 
 interface CollegeAllocation {
   name: string;
@@ -13,6 +14,75 @@ interface CollegeAllocation {
   overseasPct: number;
   euPct: number;
   matriculatedPct: number;
+}
+
+/**
+ * College allocation card with progressive disclosure.
+ * Closed: name, capacity and enrolment bar. "Breakdown" reveals fee
+ * classification and matriculation rate.
+ */
+function CollegeTile({ col }: { col: CollegeAllocation }) {
+  const { isOpen, triggerProps, panelId } = useDisclosure();
+  const filledPct = Math.round((col.enrolled / col.capacity) * 100);
+  const fees = [
+    { label: 'Home / UK', pct: col.homePct, dot: 'bg-primary' },
+    { label: 'Overseas', pct: col.overseasPct, dot: 'bg-secondary' },
+    { label: 'EU Settled', pct: col.euPct, dot: 'bg-outline' },
+  ];
+  return (
+    <article className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/25 hover:border-outline-variant/60 transition-all flex flex-col">
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <h3 className="font-serif text-base font-bold text-primary">{col.name}</h3>
+        <span className="font-mono text-xs font-semibold text-secondary shrink-0">{filledPct}% capacity</span>
+      </div>
+      <div className="flex items-center justify-between text-xs text-on-surface-variant/80 mb-2">
+        <span>Enrolled students</span>
+        <span className="font-semibold text-on-surface tabular-nums">
+          {col.enrolled} / {col.capacity}
+        </span>
+      </div>
+      <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+        <div className="bg-primary h-2 rounded-full" style={{ width: `${filledPct}%` }} />
+      </div>
+
+      <DisclosurePanel id={panelId} isOpen={isOpen}>
+        <div className="space-y-1.5 mt-4 pt-3 border-t border-outline-variant/15 text-xs">
+          {fees.map((f) => (
+            <div key={f.label} className="flex items-center justify-between text-on-surface-variant">
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${f.dot}`} /> {f.label}
+              </span>
+              <span className="font-medium text-on-surface">{f.pct}%</span>
+            </div>
+          ))}
+          <div className="flex items-center justify-between pt-1 text-secondary font-medium">
+            <span>Matriculated</span>
+            <span>{col.matriculatedPct}%</span>
+          </div>
+        </div>
+      </DisclosurePanel>
+
+      <div className="mt-auto pt-4">
+        <div className="pt-3 border-t border-outline-variant/15 flex items-center justify-between text-xs">
+          <button
+            type="button"
+            {...triggerProps}
+            className="text-on-surface-variant font-medium hover:text-on-surface inline-flex items-center gap-1 cursor-pointer rounded-xs outline-none focus-visible:focus-ring"
+          >
+            {isOpen ? 'Hide breakdown' : 'Breakdown'}
+            <Icon className={`text-[16px] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</Icon>
+          </button>
+          <button
+            className="text-primary font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer rounded-xs outline-none focus-visible:focus-ring"
+            onClick={() => alert(`Opening enrollment roster for ${col.name}`)}
+            type="button"
+          >
+            Roster <Icon className="text-[14px]">arrow_forward</Icon>
+          </button>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export default function EnrollmentPage() {
@@ -149,64 +219,9 @@ export default function EnrollmentPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--spacing-gutter)]">
           {colleges
             .filter((c) => searchQuery === '' || c.name.toLowerCase().includes(searchQuery.toLowerCase()))
-            .map((col) => {
-              const filledPct = Math.round((col.enrolled / col.capacity) * 100);
-              return (
-                <article
-                  key={col.name}
-                  className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/25 hover:border-outline-variant/60 transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-serif text-base font-bold text-primary">{col.name}</h3>
-                      <span className="font-mono text-xs font-semibold text-secondary">{filledPct}% Capacity</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs text-on-surface-variant/80 mb-2">
-                      <span>Enrolled Students:</span>
-                      <span className="font-semibold text-on-surface">{col.enrolled} / {col.capacity}</span>
-                    </div>
-
-                    <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden mb-4">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: `${filledPct}%` }}></div>
-                    </div>
-
-                    {/* FEE CLASSIFICATION STACK */}
-                    <div className="space-y-1.5 pt-3 border-t border-outline-variant/15 text-xs">
-                      <div className="flex items-center justify-between text-on-surface-variant">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-primary"></span> Home / UK:
-                        </span>
-                        <span className="font-medium text-on-surface">{col.homePct}%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-on-surface-variant">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-secondary"></span> Overseas:
-                        </span>
-                        <span className="font-medium text-on-surface">{col.overseasPct}%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-on-surface-variant">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-outline"></span> EU Settled:
-                        </span>
-                        <span className="font-medium text-on-surface">{col.euPct}%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-outline-variant/15 flex items-center justify-between text-xs">
-                    <span className="text-secondary font-medium">Matriculated: {col.matriculatedPct}%</span>
-                    <button
-                      className="text-primary font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
-                      onClick={() => alert(`Opening enrollment roster for ${col.name}`)}
-                      type="button"
-                    >
-                      Roster <Icon className="text-[14px]">arrow_forward</Icon>
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+            .map((col) => (
+              <CollegeTile key={col.name} col={col} />
+            ))}
         </div>
       </div>
     </div>
