@@ -6,9 +6,9 @@ export function DemoSessionBadge() {
   return (
     <div
       role="status"
-      className="pointer-events-none fixed bottom-3 left-1/2 z-50 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-1 text-caption font-semibold text-black shadow-md"
+      className="pointer-events-none fixed bottom-3 right-3 z-50 rounded-full bg-amber-500/90 px-2.5 py-0.5 text-[11px] font-semibold text-black shadow-md"
     >
-      Demo session · sample data
+      Demo · sample data
     </div>
   );
 }

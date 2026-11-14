@@ -30,6 +30,8 @@ export interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   actions?: React.ReactNode;
   disableStacked?: boolean;
+  /** Use the stacked card layout on mobile even with 3 or fewer columns. */
+  stackOnMobile?: boolean;
   className?: string;
 }
 
@@ -50,9 +52,10 @@ export function DataTable<T>({
   onRowClick,
   actions,
   disableStacked = false,
+  stackOnMobile = false,
   className = '',
 }: DataTableProps<T>) {
-  const isOverThreeColumns = columns.length > 3 && !disableStacked;
+  const isOverThreeColumns = (columns.length > 3 || stackOnMobile) && !disableStacked;
 
   // Determine title and key field columns for mobile stacked row view
   const titleColumn = columns.find((c) => c.isTitle) || columns[0];

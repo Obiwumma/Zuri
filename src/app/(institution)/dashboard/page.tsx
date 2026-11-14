@@ -4,23 +4,20 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
-  KpiTile,
+  CollapsibleKpiTile,
   DataTable,
   type Column,
   Button,
   EmptyState,
   Skeleton,
   Alert,
-  Badge,
+  useDisclosure,
+  DisclosurePanel,
 } from '@/components/ui';
 import {
-  School,
-  Users,
-  AlertCircle,
-  CheckCircle2,
   RefreshCw,
+  ChevronDown,
   SlidersHorizontal,
-  BookOpen,
   Clock,
   ArrowRight,
   Database,
@@ -126,6 +123,61 @@ const mockActivities: ActivityItem[] = [
   },
 ];
 
+/** A division needs attention when its interventions are not fully triaged/resolved. */
+const needsAttention = (d: DivisionData) => !d.interventionsStatus.includes('100%');
+
+const sortedDivisions = [...mockDivisions].sort(
+  (a, b) => Number(needsAttention(b)) - Number(needsAttention(a))
+);
+const attentionDivisions = sortedDivisions.filter(needsAttention);
+
+const byMastery = [...mockDivisions].sort(
+  (a, b) => parseFloat(a.quizMastery) - parseFloat(b.quizMastery)
+);
+const largestDivision = [...mockDivisions].sort(
+  (a, b) => parseInt(b.enrolment.replace(/,/g, ''), 10) - parseInt(a.enrolment.replace(/,/g, ''), 10)
+)[0];
+
+/** How many activity headlines the dashboard shows before "View all". */
+const ACTIVITY_PREVIEW_COUNT = 3;
+
+/** Activity entry: headline first, description revealed on demand. */
+function ActivityEntry({ item }: { item: ActivityItem }) {
+  const { isOpen, triggerProps, panelId } = useDisclosure();
+  return (
+    <article className="py-3 first:pt-4 last:pb-2">
+      <button
+        type="button"
+        {...triggerProps}
+        className="w-full text-left flex items-start justify-between gap-3 cursor-pointer rounded-xs outline-none focus-visible:focus-ring group"
+      >
+        <span className="min-w-0">
+          <span className="flex items-center gap-2 text-caption text-on-surface-variant">
+            {item.status === 'warning' && (
+              <span className="w-1.5 h-1.5 rounded-full bg-error shrink-0" aria-label="Needs attention" />
+            )}
+            <span className="font-medium">{item.category}</span>
+            <span aria-hidden="true">·</span>
+            <time>{item.timestamp}</time>
+          </span>
+          <span className="block mt-0.5 text-body-sm font-semibold text-on-surface leading-snug group-hover:underline">
+            {item.title}
+          </span>
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 mt-1 shrink-0 text-on-surface-variant transition-transform duration-200 motion-reduce:transition-none ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+          aria-hidden="true"
+        />
+      </button>
+      <DisclosurePanel id={panelId} isOpen={isOpen}>
+        <p className="text-caption text-on-surface-variant mt-1.5 leading-normal">{item.description}</p>
+      </DisclosurePanel>
+    </article>
+  );
+}
+
 function InstitutionDashboardContent() {
   const searchParams = useSearchParams();
   const showHarness = process.env.NODE_ENV !== 'production' && searchParams.get('states') === '1';
@@ -133,6 +185,8 @@ function InstitutionDashboardContent() {
   const [state, setState] = useState<DashboardState>('default');
   const [selectedTerm, setSelectedTerm] = useState('Michaelmas Term 2024–25');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const divisionsDisclosure = useDisclosure({ persistKey: 'dashboard.divisions' });
+  const showAllDivisions = divisionsDisclosure.isOpen;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -141,14 +195,16 @@ function InstitutionDashboardContent() {
     }, 800);
   };
 
-  const divisionColumns: Column<DivisionData>[] = [
+  const allDivisionColumns: Column<DivisionData>[] = [
     {
       header: 'Academic division',
       isTitle: true,
       accessor: (row) => (
         <div className="flex flex-col min-w-0">
           <span className="font-medium text-on-surface">{row.division}</span>
-          <span className="text-caption text-on-surface-variant truncate">{row.subfields}</span>
+          {showAllDivisions && (
+            <span className="text-caption text-on-surface-variant truncate">{row.subfields}</span>
+          )}
         </div>
       ),
     },
@@ -192,6 +248,14 @@ function InstitutionDashboardContent() {
       ),
     },
   ];
+
+  // Progressive disclosure: by default only the divisions needing attention,
+  // with the essential columns. "Show all" reveals every division and column.
+  const compactHeaders = new Set(['Academic division', 'Enrolment', 'Interventions']);
+  const divisionColumns = showAllDivisions
+    ? allDivisionColumns
+    : allDivisionColumns.filter((c) => compactHeaders.has(c.header));
+  const divisionRows = showAllDivisions ? sortedDivisions : attentionDivisions;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
@@ -351,11 +415,11 @@ function InstitutionDashboardContent() {
       {state === 'empty' && (
         <div className="space-y-6 sm:space-y-8">
           {/* KPI grid showing empty values */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <KpiTile label="Enrolled students" value="0" icon={School} subtext="No students enrolled yet" />
-            <KpiTile label="Active lecturers" value="0" icon={Users} subtext="No faculty members invited" />
-            <KpiTile label="Weekly interventions" value="0" icon={AlertCircle} subtext="Zero active alerts" />
-            <KpiTile label="Quiz mastery" value="—" icon={CheckCircle2} subtext="Assessments not started" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 items-start">
+            <CollapsibleKpiTile label="Enrolled students" value="0" subtext="No students enrolled yet" />
+            <CollapsibleKpiTile label="Active lecturers" value="0" subtext="No faculty members invited" />
+            <CollapsibleKpiTile label="Weekly interventions" value="0" subtext="Zero active alerts" />
+            <CollapsibleKpiTile label="Quiz mastery" value="—" subtext="Assessments not started" />
           </div>
 
           <div className="bg-surface-container-lowest rounded-md border border-outline-variant p-8 md:p-12">
@@ -378,34 +442,62 @@ function InstitutionDashboardContent() {
         <>
           {/* Component: 4 KPI Tiles Max (grid-cols-2 mobile, lg:grid-cols-4, no fixed widths, no wrap) */}
           <section aria-label="Key institutional indicators">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              <KpiTile
+            {/* Progressive disclosure: title + headline number; open a card for trend, context and detail. */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 items-start">
+              <CollapsibleKpiTile
                 label="Enrolled students"
                 value="18,420"
-                delta={{ value: '+2.4%', direction: 'up' }}
-                icon={School}
+                delta={{ value: '+2.4% this term', direction: 'up' }}
                 subtext="Enrolled across 38 colleges & faculties"
+                details={
+                  <>
+                    Largest division: <strong className="font-medium">{largestDivision.division}</strong>{' '}
+                    ({largestDivision.enrolment})
+                  </>
+                }
+                link={{ href: '/students', label: 'View students' }}
+                persistKey="dashboard.kpi.enrolled"
               />
-              <KpiTile
+              <CollapsibleKpiTile
                 label="Active lecturers"
                 value="1,248"
-                delta={{ value: '94.2%', direction: 'neutral' }}
-                icon={Users}
+                delta={{ value: '94.2% active', direction: 'neutral' }}
                 subtext="412 tutorial fellows active today"
+                link={{ href: '/lecturers', label: 'View lecturers' }}
+                persistKey="dashboard.kpi.lecturers"
               />
-              <KpiTile
+              <CollapsibleKpiTile
                 label="Weekly interventions"
                 value="142"
-                delta={{ value: '-18% wk 5', direction: 'down' }}
-                icon={AlertCircle}
-                subtext="76% resolved within 48h protocol"
+                delta={{ value: '-18% vs week 5', direction: 'down' }}
+                subtext="76% resolved within the 48h protocol"
+                details={
+                  <ul className="space-y-0.5">
+                    {attentionDivisions.map((d) => (
+                      <li key={d.division}>
+                        <strong className="font-medium">{d.division}</strong>: {d.interventionsStatus}
+                      </li>
+                    ))}
+                  </ul>
+                }
+                link={{ href: '/analytics/interventions', label: 'Review interventions' }}
+                persistKey="dashboard.kpi.interventions"
               />
-              <KpiTile
+              <CollapsibleKpiTile
                 label="Quiz mastery"
                 value="87.6%"
-                delta={{ value: '+3.1%', direction: 'up' }}
-                icon={CheckCircle2}
+                delta={{ value: '+3.1% this term', direction: 'up' }}
                 subtext="Across formative module assessments"
+                details={
+                  <>
+                    Lowest: <strong className="font-medium">{byMastery[0].division}</strong> ({byMastery[0].quizMastery})
+                    <br />
+                    Highest: <strong className="font-medium">{byMastery[byMastery.length - 1].division}</strong> (
+                    {byMastery[byMastery.length - 1].quizMastery})
+                  </>
+                }
+                link={{ href: '/analytics/quiz-performance', label: 'View quiz performance' }}
+                persistKey="dashboard.kpi.quiz"
               />
             </div>
           </section>
@@ -416,10 +508,29 @@ function InstitutionDashboardContent() {
             <section className="lg:col-span-8 flex flex-col">
               <DataTable
                 title="Academic division health"
-                subtitle="Curriculum ingestion, active enrollment, and intervention triage across collegiate divisions."
+                subtitle={
+                  showAllDivisions
+                    ? 'Curriculum ingestion, enrolment and intervention triage across all divisions.'
+                    : `${attentionDivisions.length} of ${mockDivisions.length} divisions need attention`
+                }
                 columns={divisionColumns}
-                data={mockDivisions}
+                data={divisionRows}
                 keyExtractor={(row) => row.division}
+                stackOnMobile
+                actions={
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    aria-expanded={showAllDivisions}
+                    onClick={divisionsDisclosure.toggle}
+                  >
+                    <span>{showAllDivisions ? 'Show less' : `Show all ${mockDivisions.length} divisions`}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${showAllDivisions ? 'rotate-180' : ''}`}
+                      aria-hidden="true"
+                    />
+                  </Button>
+                }
               />
             </section>
 
@@ -440,25 +551,10 @@ function InstitutionDashboardContent() {
                 <Clock className="w-4 h-4 text-on-surface-variant shrink-0" aria-hidden="true" />
               </div>
 
-              {/* Activity List */}
+              {/* Activity List: headlines only; each expands for its description */}
               <div className="divide-y divide-outline-variant/20">
-                {mockActivities.map((item) => (
-                  <article key={item.id} className="py-3.5 first:pt-4 last:pb-2">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-caption font-medium text-on-surface-variant">
-                        {item.category}
-                      </span>
-                      <time className="text-caption text-on-surface-variant/80">
-                        {item.timestamp}
-                      </time>
-                    </div>
-                    <h3 className="text-body-sm font-semibold text-on-surface leading-snug">
-                      {item.title}
-                    </h3>
-                    <p className="text-caption text-on-surface-variant mt-1 leading-normal">
-                      {item.description}
-                    </p>
-                  </article>
+                {mockActivities.slice(0, ACTIVITY_PREVIEW_COUNT).map((item) => (
+                  <ActivityEntry key={item.id} item={item} />
                 ))}
               </div>
 
@@ -468,7 +564,7 @@ function InstitutionDashboardContent() {
                   href="/activity"
                   className="inline-flex items-center gap-1.5 text-body-sm font-medium text-primary hover:underline outline-none focus-visible:focus-ring rounded-xs"
                 >
-                  <span>View all institutional activity</span>
+                  <span>View all activity</span>
                   <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                 </Link>
               </div>

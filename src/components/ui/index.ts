@@ -11,3 +11,6 @@ export * from './Skeleton';
 export * from './KpiTile';
 export * from './DataTable';
 export * from './Icon';
+export * from './KpiDeltaBadge';
+export * from './CollapsibleKpiTile';
+export * from './Disclosure';

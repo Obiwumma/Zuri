@@ -1,7 +1,7 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { Icon } from '@/components/ui/Icon';
+import { KpiDeltaBadge } from './KpiDeltaBadge';
 
 export interface KpiTileProps {
   label: string;
@@ -33,30 +33,6 @@ export function KpiTile({
   const deltaValue = delta?.value || trend;
   const direction = delta?.direction || trendDirection;
 
-  const getDeltaBadge = () => {
-    if (!deltaValue) return null;
-
-    let badgeClass = 'bg-success-container text-success';
-    let DeltaIcon = TrendingUp;
-
-    if (direction === 'down') {
-      badgeClass = 'bg-error-container text-error';
-      DeltaIcon = TrendingDown;
-    } else if (direction === 'neutral') {
-      badgeClass = 'bg-surface-container-high text-on-surface-variant';
-      DeltaIcon = ArrowRight;
-    }
-
-    return (
-      <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium shrink-0 select-none ${badgeClass}`}
-      >
-        <DeltaIcon className="w-3 h-3 stroke-[2]" aria-hidden="true" />
-        <span>{deltaValue}</span>
-      </span>
-    );
-  };
-
   return (
     <article
       className={`bg-surface-container-lowest p-4 md:p-5 rounded-md border border-outline-variant flex flex-col justify-between shadow-none transition-colors ${className}`}
@@ -80,7 +56,7 @@ export function KpiTile({
           <span className="text-h1 font-serif [data-theme='ops']_&:font-sans [data-theme='ops']_&:font-semibold text-on-surface font-medium tracking-tight truncate tabular-nums">
             {value}
           </span>
-          {getDeltaBadge()}
+          <KpiDeltaBadge value={deltaValue} direction={direction} />
         </div>
       </div>
       {subtext && (
