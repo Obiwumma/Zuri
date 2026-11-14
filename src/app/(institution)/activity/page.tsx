@@ -146,23 +146,25 @@ function ActivityContent() {
     {
       header: 'Event ID and time',
       isTitle: true,
+      className: 'w-40 min-w-40 whitespace-nowrap',
       accessor: (row) => (
-        <div className="flex flex-col py-0.5">
+        <div className="flex flex-col gap-0.5 py-1">
           <span className="font-mono text-body-sm font-semibold text-on-surface">
             {row.id}
           </span>
-          <span className="text-caption text-on-surface-variant">
-            {row.timeAgo} • {row.timestamp}
-          </span>
+          <time className="text-caption text-on-surface-variant" title={row.timestamp}>
+            {row.timeAgo}
+          </time>
         </div>
       ),
     },
     {
       header: 'Category',
       isKeyField: true,
+      className: 'w-40 whitespace-nowrap',
       accessor: (row) => (
         <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-caption font-medium select-none ${
+          className={`inline-flex whitespace-nowrap items-center gap-1.5 px-2 py-0.5 rounded-full text-caption font-medium select-none ${
             row.category === 'Intervention'
               ? 'bg-warning-container text-warning font-semibold'
               : row.category === 'Governance'
@@ -177,11 +179,11 @@ function ActivityContent() {
     {
       header: 'Activity and description',
       accessor: (row) => (
-        <div className="flex flex-col max-w-md py-0.5">
+        <div className="flex flex-col max-w-xl py-1">
           <span className="font-medium text-body-sm text-on-surface leading-snug">
             {row.title}
           </span>
-          <p className="text-caption text-on-surface-variant truncate mt-0.5">
+          <p className="text-caption text-on-surface-variant line-clamp-2 mt-1 leading-normal">
             {row.description}
           </p>
         </div>
@@ -216,8 +218,9 @@ function ActivityContent() {
     {
       header: 'Status',
       isKeyField: true,
+      className: 'w-36 whitespace-nowrap',
       accessor: (row) => (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption bg-surface-container text-on-surface-variant font-medium">
+        <span className="inline-flex whitespace-nowrap items-center gap-1 px-2 py-0.5 rounded-full text-caption bg-surface-container text-on-surface-variant font-medium">
           {row.statusBadge}
         </span>
       ),
