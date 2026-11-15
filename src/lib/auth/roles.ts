@@ -1,7 +1,7 @@
 // NOTE: This role and shell mapping is pending confirmation with the backend owner.
 
 import type { NavGroup, NavItem } from '@/components/ui/NavShell';
-import { canAccessPath } from './access';
+import { canAccessPath, roleTier } from './access';
 
 /**
  * Verified backend roles recognized across Zuri microservices:
@@ -107,9 +107,14 @@ export function filterNavGroupsByRole(
   role: string | null | undefined
 ): NavGroup[] {
   if (!role) return [];
+  // Non-admins only get their personal settings, so the link is just "Settings".
+  const isAdmin = roleTier(role) === 'admin';
+  const relabel = (item: NavItem): NavItem =>
+    !isAdmin && item.href === '/settings' ? { ...item, label: 'Settings' } : item;
   const filterItems = (items: NavItem[]): NavItem[] =>
     items
       .filter((item) => canAccessPath(role, item.href))
+      .map(relabel)
       .map((item) => (item.subItems ? { ...item, subItems: filterItems(item.subItems) } : item));
 
   return navGroups

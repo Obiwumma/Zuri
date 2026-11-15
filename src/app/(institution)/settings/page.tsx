@@ -395,10 +395,12 @@ function SettingsContent() {
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-outline-variant/60">
         <div className="flex flex-col">
           <h1 className="text-2xl sm:text-3xl font-serif text-on-surface tracking-tight">
-            Institution settings
+            {canManageInstitution ? 'Institution settings' : 'Settings'}
           </h1>
           <p className="text-body-sm text-on-surface-variant mt-1">
-            Manage administrator profile, single sign-on, data retention, active devices, and notifications.
+            {canManageInstitution
+              ? 'Manage administrator profile, single sign-on, data retention, active devices, and notifications.'
+              : 'Manage your profile, password, active sessions, and notification preferences.'}
           </p>
         </div>
 
