@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
+import { DisclosurePanel } from '@/components/ui/Disclosure';
 import { Wordmark } from '@/components/brand/Wordmark';
 import {
   Menu,
@@ -76,8 +77,21 @@ export function NavShell({
 }: NavShellProps) {
   const router = useRouter();
   const currentPath = usePathname();
+  const isItemActive = (item: NavItem): boolean =>
+    activeRoute === item.path ||
+    activeRoute === item.href ||
+    Boolean(currentPath && currentPath === item.href && item.href !== '#');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Sidebar sections (and nested dropdowns) all start closed.
+  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set());
+  const toggleSection = (key: string) =>
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   const isAuthPage =
     currentPath === '/login' ||
@@ -162,68 +176,113 @@ export function NavShell({
             </div>
           )}
 
-          <nav className="flex-1 px-4 py-2 flex flex-col gap-4">
-            {navGroups.map((group, idx) => (
-              <div key={group.groupName} data-nav-group={group.groupName.toLowerCase().replace(/\s+/g, '-')}>
-                <div className="px-2 mb-1 font-label-caps text-[11px] uppercase tracking-wider text-secondary font-medium">
-                  {idx + 1}. {group.groupName}
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  {group.items.map((item) => {
-                    const isActive =
-                      activeRoute === item.path ||
-                      activeRoute === item.href ||
-                      (currentPath && currentPath === item.href && item.href !== '#');
-                    return (
-                      <React.Fragment key={item.path || item.label}>
-                        <Link
-                          aria-current={isActive ? 'page' : undefined}
-                          className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-colors font-ui-functional text-[13px] ${
-                            isActive
-                              ? 'bg-primary-container text-on-primary-container font-semibold'
-                              : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
-                          }`}
-                          data-path={item.path}
-                          href={item.href}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          <span className="truncate">{item.label}</span>
-                          {item.subItems && (
-                            <Icon icon={ChevronDown} size={16} className="text-secondary shrink-0" />
-                          )}
-                        </Link>
-                        {item.subItems && (
-                          <div className="pl-3 ml-3 border-l border-outline-variant/30 flex flex-col gap-0.5 my-0.5">
-                            {item.subItems.map((subItem) => {
-                              const isSubActive =
-                                activeRoute === subItem.path ||
-                                activeRoute === subItem.href ||
-                                (currentPath && currentPath === subItem.href && subItem.href !== '#');
-                              return (
-                                <Link
-                                  key={subItem.path || subItem.label}
-                                  aria-current={isSubActive ? 'page' : undefined}
-                                  className={`flex items-center px-2 py-1 rounded-md transition-colors font-ui-functional text-[12px] ${
-                                    isSubActive
-                                      ? 'bg-primary-container/80 text-on-primary-container font-semibold'
-                                      : 'text-on-surface-variant/80 hover:bg-surface-container-high hover:text-on-surface'
-                                  }`}
-                                  data-path={subItem.path}
-                                  href={subItem.href}
-                                  onClick={() => setIsMobileMenuOpen(false)}
+          {/* Progressive disclosure: every section starts closed; the section
+              holding the current page is marked so users keep their bearings. */}
+          <nav className="flex-1 px-4 py-2 flex flex-col gap-1" aria-label="Main navigation">
+            {navGroups.map((group, idx) => {
+              const groupKey = group.groupName;
+              const isGroupOpen = openSections.has(groupKey);
+              const panelId = `nav-section-${idx}`;
+              const hasActive = group.items.some(
+                (item) => isItemActive(item) || (item.subItems ?? []).some(isItemActive)
+              );
+              return (
+                <div key={groupKey} data-nav-group={groupKey.toLowerCase().replace(/\s+/g, '-')}>
+                  <button
+                    type="button"
+                    aria-expanded={isGroupOpen}
+                    aria-controls={panelId}
+                    onClick={() => toggleSection(groupKey)}
+                    className={`w-full flex items-center justify-between gap-2 px-2 py-2 rounded-lg font-label-caps text-[11px] uppercase tracking-wider cursor-pointer transition-colors outline-none focus-visible:focus-ring hover:bg-surface-container-high ${
+                      hasActive ? 'text-primary font-semibold' : 'text-secondary font-medium'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">
+                        {idx + 1}. {group.groupName}
+                      </span>
+                      {hasActive && !isGroupOpen && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" aria-label="Current page is in this section" />
+                      )}
+                    </span>
+                    <Icon
+                      icon={ChevronDown}
+                      size={14}
+                      className={`shrink-0 transition-transform duration-200 motion-reduce:transition-none ${isGroupOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  <DisclosurePanel id={panelId} isOpen={isGroupOpen}>
+                    <div className="flex flex-col gap-0.5 pt-0.5 pb-2">
+                      {group.items.map((item) => {
+                        const isActive = isItemActive(item);
+                        const subOpen = openSections.has(`${groupKey}::${item.label}`);
+                        const subPanelId = `${panelId}-sub-${item.label.replace(/\W+/g, '-')}`;
+                        return (
+                          <React.Fragment key={item.path || item.label}>
+                            <div className="flex items-center gap-0.5">
+                              <Link
+                                aria-current={isActive ? 'page' : undefined}
+                                className={`flex-1 min-w-0 flex items-center px-2.5 py-1.5 rounded-lg transition-colors font-ui-functional text-[13px] ${
+                                  isActive
+                                    ? 'bg-primary-container text-on-primary-container font-semibold'
+                                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+                                }`}
+                                data-path={item.path}
+                                href={item.href}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                              >
+                                <span className="truncate">{item.label}</span>
+                              </Link>
+                              {item.subItems && item.subItems.length > 0 && (
+                                <button
+                                  type="button"
+                                  aria-expanded={subOpen}
+                                  aria-controls={subPanelId}
+                                  aria-label={`${subOpen ? 'Hide' : 'Show'} ${item.label} pages`}
+                                  onClick={() => toggleSection(`${groupKey}::${item.label}`)}
+                                  className="p-1.5 rounded-lg text-secondary hover:bg-surface-container-high cursor-pointer outline-none focus-visible:focus-ring shrink-0"
                                 >
-                                  <span className="truncate">{subItem.label}</span>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
+                                  <Icon
+                                    icon={ChevronDown}
+                                    size={16}
+                                    className={`transition-transform duration-200 motion-reduce:transition-none ${subOpen ? 'rotate-180' : ''}`}
+                                  />
+                                </button>
+                              )}
+                            </div>
+                            {item.subItems && item.subItems.length > 0 && (
+                              <DisclosurePanel id={subPanelId} isOpen={subOpen}>
+                                <div className="pl-3 ml-3 border-l border-outline-variant/30 flex flex-col gap-0.5 my-0.5">
+                                  {item.subItems.map((subItem) => {
+                                    const isSubActive = isItemActive(subItem);
+                                    return (
+                                      <Link
+                                        key={subItem.path || subItem.label}
+                                        aria-current={isSubActive ? 'page' : undefined}
+                                        className={`flex items-center px-2 py-1 rounded-md transition-colors font-ui-functional text-[12px] ${
+                                          isSubActive
+                                            ? 'bg-primary-container/80 text-on-primary-container font-semibold'
+                                            : 'text-on-surface-variant/80 hover:bg-surface-container-high hover:text-on-surface'
+                                        }`}
+                                        data-path={subItem.path}
+                                        href={subItem.href}
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                      >
+                                        <span className="truncate">{subItem.label}</span>
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              </DisclosurePanel>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  </DisclosurePanel>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
         </div>
 

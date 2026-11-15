@@ -11,8 +11,6 @@ import {
   Skeleton,
   Alert,
   DetailDrawer,
-  splitColumns,
-  columnsToFields,
 } from '@/components/ui';
 import {
   Search,
@@ -328,7 +326,45 @@ function CoursesContent() {
   // Progressive disclosure: the table keeps only what's needed to find a
   // record; every other column opens in the detail drawer on row click.
   const [selected, setSelected] = useState<CourseRecord | null>(null);
-  const { visible: tableColumns, hidden: drawerColumns } = splitColumns(columns, ['Course & curriculum', 'Faculty lead', 'Enrollment', 'Status']);
+  // Minimal one-line rows: code + title, lead, enrolment, status.
+  // Description, college, department, cohort detail, mastery and timetable
+  // details are all in the drawer.
+  const tableColumns: Column<CourseRecord>[] = [
+    {
+      header: 'Course',
+      isTitle: true,
+      accessor: (row) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-mono text-caption px-2 py-0.5 rounded-sm bg-surface-container font-semibold text-primary shrink-0">
+            {row.code}
+          </span>
+          <span className="font-semibold text-on-surface text-body-sm truncate">{row.title}</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Faculty lead',
+      accessor: (row) => (
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-full bg-primary text-on-primary font-semibold text-[11px] flex items-center justify-center shrink-0">
+            {row.leadInitials}
+          </div>
+          <span className="text-body-sm font-medium text-on-surface truncate">{row.leadName}</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Enrolled',
+      numeric: true,
+      isKeyField: true,
+      accessor: (row) => (
+        <span className="tabular-nums font-semibold text-on-surface text-body-sm">
+          {row.enrolledCount.toLocaleString()}
+        </span>
+      ),
+    },
+    columns.find((c) => c.header === 'Status')!,
+  ];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
@@ -618,7 +654,19 @@ function CoursesContent() {
         eyebrow="Course"
         title={selected ? `${selected.code} · ${selected.title}` : ''}
         subtitle={selected ? selected.subtitle : undefined}
-        fields={selected ? [...columnsToFields(drawerColumns, selected), { label: 'Lecture cadence', value: selected.lectureCadence }, { label: 'Hall', value: selected.hallLocation }, { label: 'College', value: selected.college }] : []}
+        fields={
+          selected
+            ? [
+                { label: 'Faculty lead', value: <>{selected.leadName}<span className="block text-caption text-on-surface-variant font-normal">{selected.college}</span></> },
+                { label: 'Department', value: <>{selected.department}<span className="block text-caption text-on-surface-variant font-normal">{selected.division}</span></> },
+                { label: 'Enrolled', value: <>{selected.enrolledCount.toLocaleString()} students<span className="block text-caption text-on-surface-variant font-normal">{selected.enrolledDetail}</span></> },
+                { label: 'Mastery rate', value: <>{selected.masteryPct}<span className="block text-caption text-on-surface-variant font-normal">{selected.masteryStatus}</span></> },
+                { label: 'Lecture cadence', value: selected.lectureCadence },
+                { label: 'Hall', value: selected.hallLocation },
+                { label: 'Status', value: columns.find((c) => c.header === 'Status')!.accessor(selected, 0) },
+              ]
+            : []
+        }
       />
     </div>
   );
